@@ -1,0 +1,2 @@
+UPDATE public.providers SET modification_submitted = true WHERE pending_changes IS NOT NULL;
+UPDATE public.services SET modification_submitted = true WHERE pending_changes IS NOT NULL;

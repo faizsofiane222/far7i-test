@@ -1,0 +1,315 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Far7i Brand Colors - Gilded Sage Palette */
+    --gilded-gold: #B79A63;
+    --deep-charcoal: #1E1E1E;
+    --warm-white: #F8F5F0;
+    --soft-stone: #D4D2CF;
+    --muted-cream: #EBE6DA;
+
+    --background: 40 31% 96%;
+    /* #F8F5F0 */
+    --foreground: 0 0% 12%;
+    /* #1E1E1E */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 12%;
+
+    --primary: 39 40% 55%;
+    /* #B79A63 */
+    --primary-foreground: 40 31% 96%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 40 31% 96%;
+
+    --muted: 42 23% 93%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 30 2% 83%;
+    /* #D4D2CF */
+    --accent-foreground: 0 0% 12%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 30 2% 83%;
+    --input: 30 2% 83%;
+    --ring: 39 40% 55%;
+
+    --radius: 0.75rem;
+
+    /* Enhanced spacing tokens */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+    --space-24: 6rem;
+    --space-32: 8rem;
+
+    /* Transition timing */
+    --transition-swift: 150ms;
+    --transition-smooth: 300ms;
+    --transition-slow: 500ms;
+
+    /* Enhanced shadows */
+    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 2px 4px hsl(0 0% 0% / 0.06);
+    --shadow-md: 0 4px 6px hsl(0 0% 0% / 0.07);
+    --shadow-lg: 0 10px 15px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 20px 25px hsl(0 0% 0% / 0.12);
+    --shadow-2xl: 0 25px 50px hsl(0 0% 0% / 0.15);
+    --shadow-glow-sm: 0 0 10px hsl(var(--primary) / 0.3);
+    --shadow-glow-md: 0 0 20px hsl(var(--primary) / 0.4);
+    --shadow-glow-lg: 0 0 30px hsl(var(--primary) / 0.5);
+    --shadow-glow-xl: 0 0 40px hsl(var(--primary) / 0.6);
+
+    /* Gradient variants */
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(var(--gold-600)) 0%, hsl(var(--gold-500)) 50%, hsl(var(--gold-600)) 100%);
+    --gradient-premium: linear-gradient(135deg, hsl(var(--gold-700)) 0%, hsl(var(--primary)) 50%, hsl(var(--gold-700)) 100%);
+    --gradient-shine: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.1) 50%, transparent 100%);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 12%;
+    --foreground: 36 33% 96%;
+
+    --card: 0 0% 15%;
+    --card-foreground: 36 33% 96%;
+
+    --popover: 0 0% 15%;
+    --popover-foreground: 36 33% 96%;
+
+    --primary: 38 33% 55%;
+    --primary-foreground: 0 0% 12%;
+
+    --secondary: 36 33% 96%;
+    --secondary-foreground: 0 0% 12%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 36 20% 70%;
+
+    --accent: 160 84% 18%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 0 0% 25%;
+    --input: 0 0% 25%;
+    --ring: 38 33% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif;
+  }
+
+  /* Body text justification */
+  article,
+  .article-content,
+  .body-text {
+    text-align: justify;
+  }
+
+  /* Scroll margin for anchor links */
+  .article-content h2,
+  .article-content h3 {
+    scroll-margin-top: 6rem;
+  }
+
+  /* Text overlay for better readability */
+  .text-over-image {
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@layer components {
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-gold-600 via-gold-400 to-gold-600 bg-clip-text text-transparent;
+  }
+
+  .bg-gradient-gold {
+    background: var(--gradient-gold-subtle);
+  }
+
+  .bg-gradient-premium {
+    background: var(--gradient-premium);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow-md);
+  }
+
+  .shadow-glow-accent {
+    box-shadow: var(--shadow-glow-lg);
+  }
+
+  .shadow-glow-sm {
+    box-shadow: var(--shadow-glow-sm);
+  }
+
+  .shadow-glow-xl {
+    box-shadow: var(--shadow-glow-xl);
+  }
+
+  /* Shimmer effect for loading states */
+  .shimmer {
+    background: linear-gradient(90deg,
+        transparent 0%,
+        hsl(var(--primary) / 0.1) 50%,
+        transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Floating animation for badges */
+  .float-subtle {
+    animation: float-subtle 3s ease-in-out infinite;
+  }
+
+  @keyframes float-subtle {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Pulse glow animation */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+
+    0%,
+    100% {
+      box-shadow: var(--shadow-glow-md);
+    }
+
+    50% {
+      box-shadow: var(--shadow-glow-xl);
+    }
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Fixed height for Rich Text Editors */
+  .prose-editor .ql-container {
+    height: 400px !important;
+    font-family: 'Lato', sans-serif !important;
+  }
+
+  .prose-editor .ql-editor {
+    height: 100% !important;
+    overflow-y: auto !important;
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+    padding: 24px !important;
+    background-color: #F8F5F0 !important;
+  }
+
+  .prose-editor .ql-toolbar {
+    border-top-left-radius: 12px !important;
+    border-top-right-radius: 12px !important;
+    background-color: white !important;
+    border-color: #D4D2CF !important;
+  }
+
+  .prose-editor .ql-container {
+    border-bottom-left-radius: 12px !important;
+    border-bottom-right-radius: 12px !important;
+    border-color: #D4D2CF !important;
+  }
+
+  @keyframes zoom-subtle {
+    0% {
+      transform: scale(1.15);
+    }
+
+    100% {
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-zoom-subtle {
+    animation: zoom-subtle 4s ease-out forwards;
+  }
+}

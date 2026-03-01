@@ -1,0 +1,36 @@
+-- Migration: Add Profile Fields (Viber, Bio, Location)
+-- Description: Adds is_viber_active, bio, latitude, longitude to providers.
+
+DO $$ 
+BEGIN
+    -- Add is_viber_active
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='is_viber_active') THEN
+        ALTER TABLE public.providers ADD COLUMN is_viber_active BOOLEAN DEFAULT false;
+    END IF;
+
+    -- Add bio (if not exists, though 'description' might start as service desc, we want a personal bio?)
+    -- The user requirement says "bio (c'est la description de la personne ou de l'agence) pas du service".
+    -- Let's check if we should use a new column or if 'description' on provider is already that.
+    -- Usually providers table has a description. Let's add 'bio' to be explicit if needed, or just map UI 'Bio' to 'description'.
+    -- Let's add 'bio' to be safe and distinct from a potential service-defaults description.
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='bio') THEN
+        ALTER TABLE public.providers ADD COLUMN bio TEXT;
+    END IF;
+
+    -- Add Location
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='latitude') THEN
+        ALTER TABLE public.providers ADD COLUMN latitude DECIMAL(10,8);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='longitude') THEN
+        ALTER TABLE public.providers ADD COLUMN longitude DECIMAL(11,8);
+    END IF;
+
+    -- Add city/wilaya if not fully covered (we have wilaya_id, but maybe they want free text city?)
+    -- The user said "Entrer sa ville", usually covered by Wilaya + Baladiya or address.
+    -- Let's ensure address is there.
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='address') THEN
+        ALTER TABLE public.providers ADD COLUMN address TEXT;
+    END IF;
+
+END $$;
