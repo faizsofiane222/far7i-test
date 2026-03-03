@@ -18,7 +18,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { compressAndUpload } from "@/lib/image-utils";
+import { Camera, User, X } from "lucide-react";
 
 type AuthMode = "login" | "signup";
 
@@ -36,8 +38,8 @@ const signupSchema = z.object({
     partnerType: z.enum(["individual", "agency"], { required_error: "Veuillez choisir un type" }),
     phone: z.string().regex(/^(?:(?:00213|\+213)|0)(5|6|7)[0-9]{8}$/, "Numéro de téléphone invalide (ex: 0550...)"),
     wilaya: z.string().min(1, "Veuillez sélectionner votre Wilaya"),
-    socialLink: z.string().url("Lien invalide (commencez par https://)").optional().or(z.literal("")),
-    termsAccepted: z.literal(true, { errorMap: () => ({ message: "Vous devez accepter les conditions d'utilisation" }) }),
+    socialLink: z.string().url("Lien invalide (commencez par https://)"),
+    termsAccepted: z.boolean().refine(val => val === true, "Vous devez accepter les conditions d'utilisation"),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
     path: ["confirmPassword"],
@@ -50,6 +52,9 @@ export default function PartnerAuth() {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showCGU, setShowCGU] = useState(false);
     const [wilayas, setWilayas] = useState<{ id: string, name: string, code: string }[]>([]);
+    const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchWilayas = async () => {
@@ -123,6 +128,29 @@ export default function PartnerAuth() {
 
                 if (error) throw error;
 
+                // If user is successfully created (and perhaps logged in if no confirmation required)
+                // We attempt to upload the avatar if they selected one
+                if (data.user && selectedAvatar) {
+                    try {
+                        const { publicUrl, error: uploadError } = await compressAndUpload(
+                            selectedAvatar,
+                            data.user.id,
+                            { bucket: "provider-profiles", folder: data.user.id }
+                        );
+                        if (!uploadError && publicUrl) {
+                            // Update the provider profile that the trigger just created
+                            await supabase.from("providers")
+                                .update({ profile_picture_url: publicUrl })
+                                .eq("user_id", data.user.id);
+                        } else {
+                            console.warn("Could not upload avatar during signup (perhaps email confirmation is required):", uploadError);
+                            // We don't fail the signup simply because the avatar didn't upload
+                        }
+                    } catch (uploadErr) {
+                        console.warn("Avatar upload failed:", uploadErr);
+                    }
+                }
+
                 // Show success modal
                 setShowSuccessModal(true);
             }
@@ -165,12 +193,57 @@ export default function PartnerAuth() {
                         {/* Fields specific to Signup */}
                         {mode === "signup" && (
                             <>
+                                {/* Avatar Selection */}
+                                <div className="flex flex-col items-center justify-center space-y-3 mb-6">
+                                    <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                        <div className="w-24 h-24 rounded-full bg-[#F8F5F0] border-2 border-[#D4D2CF] flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:border-[#B79A63]/50 shadow-sm relative">
+                                            {avatarPreview ? (
+                                                <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <User className="w-10 h-10 text-[#B79A63]/70" />
+                                            )}
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Camera className="w-6 h-6 text-white" />
+                                            </div>
+                                        </div>
+                                        {avatarPreview && (
+                                            <button
+                                                type="button"
+                                                className="absolute -top-2 -right-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-1"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedAvatar(null);
+                                                    setAvatarPreview(null);
+                                                }}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm font-medium text-[#1E1E1E]">Photo de profil (Optionnel)</p>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setSelectedAvatar(file);
+                                                setAvatarPreview(URL.createObjectURL(file));
+                                            }
+                                        }}
+                                    />
+                                </div>
+
                                 <FormField
                                     control={form.control}
                                     name="businessName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Nom Commercial (Entreprise)</FormLabel>
+                                            <FormLabel>Nom Commercial (Entreprise) <span className="text-red-500">*</span></FormLabel>
                                             <FormControl><GildedInput {...field} placeholder="Ex: Studio Lumière" /></FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -183,7 +256,7 @@ export default function PartnerAuth() {
                                         name="partnerType"
                                         render={({ field }) => (
                                             <FormItem className="space-y-3">
-                                                <FormLabel>Vous êtes ?</FormLabel>
+                                                <FormLabel>Vous êtes ? <span className="text-red-500">*</span></FormLabel>
                                                 <FormControl>
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
@@ -225,7 +298,7 @@ export default function PartnerAuth() {
                                         <FormItem>
                                             <FormLabel className="flex items-center gap-2 text-sm font-medium text-[#1E1E1E]">
                                                 <Phone className="w-4 h-4 text-[#B79A63]" />
-                                                Numéro de téléphone
+                                                Numéro de téléphone <span className="text-red-500">*</span>
                                             </FormLabel>
                                             <FormControl><GildedInput {...field} placeholder="Ex: 05 50..." /></FormControl>
                                             <FormMessage />
@@ -238,7 +311,7 @@ export default function PartnerAuth() {
                                     name="wilaya"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Wilaya</FormLabel>
+                                            <FormLabel>Wilaya <span className="text-red-500">*</span></FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger className="mt-1 h-12 md:h-14 bg-[#F8F5F0]/30 border-[#D4D2CF] rounded-xl px-4 hover:border-[#B79A63] focus:ring-[#B79A63] focus:border-[#B79A63] transition-all">
@@ -263,7 +336,7 @@ export default function PartnerAuth() {
                                     name="socialLink"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Lien Réseau Social (Instagram/Facebook)</FormLabel>
+                                            <FormLabel>Lien Réseau Social (Instagram/Facebook) <span className="text-red-500">*</span></FormLabel>
                                             <FormControl><GildedInput {...field} placeholder="https://instagram.com/..." /></FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -277,7 +350,7 @@ export default function PartnerAuth() {
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email Professionnel</FormLabel>
+                                    <FormLabel>Email Professionnel <span className="text-red-500">*</span></FormLabel>
                                     <FormControl><GildedInput {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -289,7 +362,7 @@ export default function PartnerAuth() {
                             name="password"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Mot de passe</FormLabel>
+                                    <FormLabel>Mot de passe <span className="text-red-500">*</span></FormLabel>
                                     <FormControl><PasswordInput {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -303,7 +376,7 @@ export default function PartnerAuth() {
                                     name="confirmPassword"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Confirmer le mot de passe</FormLabel>
+                                            <FormLabel>Confirmer le mot de passe <span className="text-red-500">*</span></FormLabel>
                                             <FormControl><PasswordInput {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
