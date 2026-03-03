@@ -1,0 +1,822 @@
+import { useState, useEffect, useRef } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+    MessageSquare,
+    Mail,
+    Search,
+    Send,
+    Plus,
+    Loader2,
+    Calendar,
+    ChevronRight,
+    Filter,
+    Search as SearchIcon,
+    Eye,
+    History,
+    Users2,
+    Trash2,
+    Braces
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
+// Types
+type Conversation = {
+    id: string;
+    type: 'support' | 'client' | 'system';
+    status: 'open' | 'closed' | 'resolved';
+    updated_at: string;
+    guest_email?: string;
+    guest_name?: string;
+    last_message?: string;
+    participants?: {
+        user_id: string;
+        full_name?: string;
+        avatar_url?: string;
+    }[];
+};
+
+type Message = {
+    id: string;
+    content: string;
+    sender_id: string;
+    created_at: string;
+};
+
+export default function AdminMessagingPanel() {
+    const [activeTab, setActiveTab] = useState("messages");
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [activeConvId, setActiveConvId] = useState<string | null>(null);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const { markConversationRead } = useNotifications();
+    const [newMessage, setNewMessage] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Newsletter State
+    const [campaign, setCampaign] = useState({
+        title: "",
+        subject: "",
+        content: "",
+        target_type: "providers",
+        filters: { category: "all", wilaya: "all" }
+    });
+    const [categories, setCategories] = useState<{ id: string, slug: string, name: string }[]>([]);
+    const [wilayas, setWilayas] = useState<{ id: string, code: string, name: string }[]>([]);
+    const [campaignHistory, setCampaignHistory] = useState<any[]>([]);
+    const [estimatedAudience, setEstimatedAudience] = useState(0);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
+    useEffect(() => {
+        const init = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) setUserId(user.id);
+            await Promise.all([
+                fetchConversations(),
+                fetchCategories(),
+                fetchWilayas(),
+                fetchCampaignHistory()
+            ]);
+            setLoading(false);
+        };
+        init();
+
+        // Real-time subscriptions for conversations
+        const convChannel = supabase
+            .channel('admin_conversations')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
+                fetchConversations();
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(convChannel); };
+    }, []);
+
+    useEffect(() => {
+        estimateAudience();
+    }, [campaign.target_type, campaign.filters]);
+
+    useEffect(() => {
+        if (activeConvId) {
+            markConversationRead(activeConvId);
+            fetchMessages(activeConvId);
+        }
+    }, [activeConvId]);
+
+    useEffect(() => {
+        if (!activeConvId) return;
+
+        const msgChannel = supabase
+            .channel(`msg_${activeConvId}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: `conversation_id=eq.${activeConvId}`
+            }, (payload) => {
+                const newMsg = payload.new as Message;
+                setMessages(prev => {
+                    if (prev.some(m => m.id === newMsg.id)) return prev;
+                    return [...prev, newMsg];
+                });
+                scrollToBottom();
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(msgChannel); };
+    }, [activeConvId]);
+
+    const fetchCategories = async () => {
+        const { data } = await supabase.from('service_categories').select('id, slug, name');
+        if (data) setCategories(data as any);
+    };
+
+    const fetchWilayas = async () => {
+        const { data } = await supabase.from('wilayas').select('id, code, name').eq('active', true);
+        if (data) setWilayas(data);
+    };
+
+    const fetchCampaignHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const { data } = await supabase
+                .from('newsletter_campaigns')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (data) setCampaignHistory(data);
+        } catch (error) {
+            console.error("Error fetching history:", error);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    const estimateAudience = async () => {
+        try {
+            let count = 0;
+            if (campaign.target_type === 'providers') {
+                let query = supabase.from('providers').select('id', { count: 'exact', head: true });
+
+                if (campaign.filters.category !== 'all') {
+                    // Filter by category slug directly
+                    const selectedCat = categories.find(c => c.id === campaign.filters.category);
+                    if (selectedCat) {
+                        query = query.eq('category_slug', selectedCat.slug);
+                    }
+                }
+                if (campaign.filters.wilaya !== 'all') {
+                    query = query.eq('wilaya_id', campaign.filters.wilaya);
+                }
+                const { count: c, error } = await query;
+                if (error) console.error("Audience calc error:", error);
+                count = c || 0;
+            } else if (campaign.target_type === 'clients') {
+                const { count: c } = await supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'client');
+                count = c || 0;
+            } else {
+                const { count: c } = await supabase.from('users').select('id', { count: 'exact', head: true });
+                count = c || 0;
+            }
+            setEstimatedAudience(count);
+        } catch (error) {
+            console.error("Error estimating audience:", error);
+        }
+    };
+
+    const fetchConversations = async () => {
+        const { data, error } = await supabase
+            .from('conversations')
+            .select('*')
+            .order('updated_at', { ascending: false });
+
+        if (error) {
+            toast.error("Erreur lors de la récupération des conversations");
+            return;
+        }
+        setConversations(data || []);
+    };
+
+    const fetchMessages = async (id: string) => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', id)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            toast.error("Erreur lors de la récupération des messages");
+            return;
+        }
+        setMessages(data || []);
+        scrollToBottom();
+    };
+
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newMessage.trim() || !activeConvId || !userId) return;
+
+        setSending(true);
+        const { error } = await supabase.from('messages').insert({
+            conversation_id: activeConvId,
+            sender_id: userId,
+            content: newMessage.trim()
+        });
+
+        if (error) {
+            toast.error("Erreur d'envoi");
+        } else {
+            setNewMessage("");
+            scrollToBottom();
+        }
+        setSending(false);
+    };
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }, 100);
+    };
+
+    // WRAPS CONTENT IN GOLD & BLACK HTML TEMPLATE
+    const wrapWithTemplate = (bodyContent: string) => {
+        // Simple HTML template for Far7i
+        // Replace newlines with <br/> if not HTML? No, assuming simple text/HTML mix.
+        // If content is plain text, we preserve newlines.
+        const formattedBody = bodyContent.replace(/\n/g, '<br/>');
+
+        return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 0; background-color: #F8F5F0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  .wrapper { width: 100%; table-layout: fixed; background-color: #F8F5F0; padding-bottom: 40px; }
+  .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+  .header { background-color: #1E1E1E; padding: 30px; text-align: center; }
+  .logo { height: 45px; width: auto; }
+  .body { padding: 40px 30px; color: #1E1E1E; line-height: 1.6; font-size: 16px; }
+  .footer { background-color: #1E1E1E; color: #888888; padding: 30px; text-align: center; font-size: 12px; border-top: 2px solid #B79A63; }
+  a { color: #B79A63; text-decoration: none; font-weight: bold; }
+  .btn { display: inline-block; background-color: #B79A63; color: white !important; padding: 12px 24px; border-radius: 4px; margin-top: 20px; }
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <!-- HEADER -->
+      <div class="header">
+        <!-- Using a public logo URL or placeholder -->
+        <h1 style="color: #B79A63; margin: 0; font-family: 'Georgia', serif; font-style: italic;">Far7i</h1>
+      </div>
+      
+      <!-- BODY -->
+      <div class="body">
+        ${formattedBody}
+      </div>
+      
+      <!-- FOOTER -->
+      <div class="footer">
+        <p style="margin-bottom: 10px;">Vous recevez cet email car vous êtes membre de la communauté Far7i.</p>
+        <p>© 2025 Far7i Events. Tous droits réservés.</p>
+        <p><a href="#">Se désabonner</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+        `;
+    };
+
+    const insertVariable = (variable: string) => {
+        if (!textAreaRef.current) return;
+
+        const start = textAreaRef.current.selectionStart;
+        const end = textAreaRef.current.selectionEnd;
+        const text = campaign.content;
+        const before = text.substring(0, start);
+        const after = text.substring(end, text.length);
+
+        const newText = before + variable + after;
+
+        setCampaign({ ...campaign, content: newText });
+
+        // Reset focus
+        setTimeout(() => {
+            if (textAreaRef.current) {
+                textAreaRef.current.focus();
+                textAreaRef.current.setSelectionRange(start + variable.length, start + variable.length);
+            }
+        }, 10);
+    };
+
+    const handleSendNewsletter = async () => {
+        if (!campaign.title || !campaign.subject || !campaign.content) {
+            toast.error("Veuillez remplir tous les champs");
+            return;
+        }
+
+        const finalHtmlContent = wrapWithTemplate(campaign.content);
+
+        try {
+            // 1. Create Campaign
+            const { data: newCampaign, error: createError } = await supabase.from('newsletter_campaigns').insert({
+                title: campaign.title,
+                subject: campaign.subject,
+                content: finalHtmlContent, // Save the fully wrapped HTML
+                target_type: campaign.target_type,
+                target_filters: campaign.filters,
+                status: 'draft', // Start as draft
+                created_by: userId
+            }).select().single();
+
+            if (createError) throw createError;
+
+            toast.info("Campagne créée, traitement de l'audience...");
+
+            // 2. Call RPC to process audience
+            const { data: rpcResult, error: rpcError } = await supabase.rpc('process_newsletter_campaign', {
+                campaign_id: newCampaign.id
+            });
+
+            if (rpcError) throw rpcError;
+
+            if ((rpcResult as any)?.success) {
+                toast.success(`Campagne envoyée ! (${(rpcResult as any).recipients_count} destinataires)`);
+            } else {
+                toast.warning(`Campagne créée mais erreur de traitement: ${(rpcResult as any)?.error}`);
+            }
+
+            // Reset form & Refresh
+            setCampaign({
+                title: "",
+                subject: "",
+                content: "",
+                target_type: "providers",
+                filters: { category: "all", wilaya: "all" }
+            });
+            fetchCampaignHistory();
+
+        } catch (error: any) {
+            console.error("Newsletter Error:", error);
+            toast.error(`Erreur: ${error.message}`);
+        }
+    };
+
+    return (
+        <AdminLayout>
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-3xl font-serif font-bold text-secondary">Messagerie & Newsletters</h1>
+                    <p className="text-muted-foreground mt-1">Gérez les communications avec vos utilisateurs et lancez des campagnes.</p>
+                </div>
+
+                <Tabs defaultValue="messages" onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full max-w-md grid-cols-2 bg-[#F8F5F0] border border-[#D4D2CF] p-1 rounded-xl">
+                        <TabsTrigger value="messages" className="rounded-lg data-[state=active]:bg-[#1E1E1E] data-[state=active]:text-white transition-all">
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Messages
+                        </TabsTrigger>
+                        <TabsTrigger value="newsletters" className="rounded-lg data-[state=active]:bg-[#1E1E1E] data-[state=active]:text-white transition-all">
+                            <Mail className="w-4 h-4 mr-2" />
+                            Newsletters
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="messages" className="mt-6 border-0 p-0">
+                        <div className="flex bg-white rounded-2xl border border-[#D4D2CF] overflow-hidden h-[70vh] shadow-sm animate-in fade-in duration-300">
+                            {/* Conversations Sidebar */}
+                            <div className="w-80 border-r border-[#D4D2CF] flex flex-col bg-[#F8F5F0]/50">
+                                <div className="p-4 border-b border-[#D4D2CF]/50 bg-white">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <Input
+                                            placeholder="Rechercher..."
+                                            className="pl-9 h-10 text-sm bg-white border-[#D4D2CF] focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    {loading ? (
+                                        <div className="flex items-center justify-center p-8">
+                                            <Loader2 className="w-6 h-6 animate-spin text-[#B79A63]" />
+                                        </div>
+                                    ) : conversations.length === 0 ? (
+                                        <div className="p-8 text-center text-slate-400 text-sm italic">
+                                            Aucune conversation
+                                        </div>
+                                    ) : (
+                                        conversations.map(conv => (
+                                            <button
+                                                key={conv.id}
+                                                onClick={() => setActiveConvId(conv.id)}
+                                                className={cn(
+                                                    "w-full p-4 flex items-start gap-4 transition-all text-left border-b border-[#D4D2CF]/30",
+                                                    activeConvId === conv.id ? "bg-[#1E1E1E] text-white" : "hover:bg-[#EBE6DA]/50"
+                                                )}
+                                            >
+                                                <Avatar className="w-10 h-10 border border-[#D4D2CF]">
+                                                    <AvatarFallback className={cn("text-xs font-bold", activeConvId === conv.id ? "bg-[#B79A63] text-white" : "bg-[#1E1E1E] text-[#B79A63]")}>
+                                                        {conv.guest_name?.[0] || conv.type[0].toUpperCase()}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-0.5">
+                                                        <span className="font-bold text-sm truncate">
+                                                            {conv.guest_name || (conv.type === 'support' ? 'Support Ticket' : 'Utilisateur')}
+                                                        </span>
+                                                        <span className={cn("text-[10px]", activeConvId === conv.id ? "text-slate-400" : "text-slate-500")}>
+                                                            {new Date(conv.updated_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className={cn("text-[10px] uppercase font-bold tracking-tighter opacity-70", activeConvId === conv.id ? "text-slate-300" : "text-slate-500")}>
+                                                            {conv.type}
+                                                        </p>
+                                                        <div className={cn("w-1 h-1 rounded-full", conv.status === 'open' ? "bg-emerald-500" : "bg-slate-400")} />
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Chat Window */}
+                            <div className="flex-1 flex flex-col bg-white">
+                                {activeConvId ? (
+                                    <>
+                                        <div className="h-16 border-b border-[#D4D2CF] flex items-center justify-between px-6 bg-[#F8F5F0]">
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="font-serif font-bold text-[#1E1E1E]">
+                                                    {conversations.find(c => c.id === activeConvId)?.guest_name || "Conversation"}
+                                                </h3>
+                                                <div className="h-4 w-[1px] bg-[#D4D2CF]" />
+                                                <span className="text-[10px] bg-[#B79A63]/20 text-[#B79A63] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                                                    {conversations.find(c => c.id === activeConvId)?.type}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#FAF9F6]/30">
+                                            {messages.length === 0 ? (
+                                                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 opacity-50 italic">
+                                                    <p>Début de la conversation</p>
+                                                </div>
+                                            ) : (
+                                                messages.map(msg => (
+                                                    <div key={msg.id} className={cn("flex w-full", msg.sender_id === userId ? "justify-end" : "justify-start")}>
+                                                        <div className={cn(
+                                                            "max-w-[70%] rounded-2xl p-4 text-sm font-lato shadow-sm transition-all animate-in fade-in zoom-in-95 duration-200",
+                                                            msg.sender_id === userId
+                                                                ? "bg-[#1E1E1E] text-white rounded-tr-none"
+                                                                : "bg-white text-[#1E1E1E] rounded-tl-none border border-[#D4D2CF]/50"
+                                                        )}>
+                                                            <p className="leading-relaxed">{msg.content}</p>
+                                                            <span className="text-[9px] opacity-50 block mt-1 text-right italic font-sans font-normal">
+                                                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        <form onSubmit={handleSendMessage} className="p-4 border-t border-[#D4D2CF]/30 flex gap-3 bg-white">
+                                            <Input
+                                                value={newMessage}
+                                                onChange={(e) => setNewMessage(e.target.value)}
+                                                placeholder="Écrivez votre réponse..."
+                                                className="flex-1 rounded-xl h-12 border-[#D4D2CF] focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
+                                            />
+                                            <Button
+                                                type="submit"
+                                                disabled={!newMessage.trim() || sending}
+                                                className="bg-[#B79A63] hover:bg-[#A68952] text-white px-6 h-12 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#B79A63]/20"
+                                            >
+                                                {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                            </Button>
+                                        </form>
+                                    </>
+                                ) : (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-400 bg-[#FAF9F6]/10">
+                                        <div className="w-20 h-20 bg-[#F8F5F0] rounded-full flex items-center justify-center mb-6 shadow-sm border border-[#D4D2CF]/50">
+                                            <MessageSquare className="w-10 h-10 opacity-20 text-[#B79A63]" />
+                                        </div>
+                                        <h3 className="font-serif text-2xl font-bold text-[#1E1E1E]">Centre de Messagerie</h3>
+                                        <p className="max-w-xs mx-auto text-sm mt-3 leading-relaxed">
+                                            Sélectionnez une conversation dans la liste à gauche pour voir les échanges et répondre aux utilisateurs.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="newsletters" className="mt-6 animate-in fade-in duration-500">
+                        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+                            {/* Editor & History */}
+                            <div className="xl:col-span-3 space-y-6">
+                                <Card className="border-[#D4D2CF] rounded-2xl overflow-hidden shadow-sm">
+                                    <CardHeader className="bg-[#F8F5F0] border-b border-[#D4D2CF]">
+                                        <CardTitle className="font-serif text-xl">Rédiger une Newsletter</CardTitle>
+                                        <CardDescription>Concevez votre message et visualisez le rendu.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-[#1E1E1E]">Nom de la campagne</label>
+                                                <Input
+                                                    value={campaign.title}
+                                                    onChange={(e) => setCampaign({ ...campaign, title: e.target.value })}
+                                                    placeholder="ex: Offres spéciales Hiver"
+                                                    className="border-[#D4D2CF] rounded-xl"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-[#1E1E1E]">Sujet de l'email</label>
+                                                <Input
+                                                    value={campaign.subject}
+                                                    onChange={(e) => setCampaign({ ...campaign, subject: e.target.value })}
+                                                    placeholder="Découvrez nos nouveautés !"
+                                                    className="border-[#D4D2CF] rounded-xl"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-sm font-bold text-[#1E1E1E]">Contenu</label>
+                                                    {/* Variables Toolbar */}
+                                                    <div className="flex items-center gap-1 bg-[#F8F5F0] rounded-md p-1 border border-[#D4D2CF]">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => insertVariable("{{name}}")}
+                                                            className="h-6 px-2 text-[10px] hover:bg-white text-[#1E1E1E]"
+                                                        >
+                                                            [Nom]
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => insertVariable("{{business}}")}
+                                                            className="h-6 px-2 text-[10px] hover:bg-white text-[#1E1E1E]"
+                                                        >
+                                                            [Business]
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                                                    <DialogTrigger asChild>
+                                                        <Button variant="outline" size="sm" className="bg-[#FAF9F6] border-[#D4D2CF] text-xs">
+                                                            <Eye className="w-3 h-3 mr-1" /> Prévisualiser
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-2xl border-[#D4D2CF]">
+                                                        <DialogHeader className="p-6 border-b bg-[#F8F5F0]">
+                                                            <DialogTitle className="font-serif italic text-2xl text-[#1E1E1E]">Aperçu de la Newsletter</DialogTitle>
+                                                            <DialogDescription>Voici à quoi ressemblera l'email pour vos destinataires (Template Inclus).</DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="flex-1 overflow-y-auto bg-white p-0">
+                                                            <iframe
+                                                                title="preview"
+                                                                srcDoc={wrapWithTemplate(campaign.content)}
+                                                                className="w-full h-full border-none"
+                                                            />
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                            <textarea
+                                                ref={textAreaRef}
+                                                value={campaign.content}
+                                                onChange={(e) => setCampaign({ ...campaign, content: e.target.value })}
+                                                className="w-full min-h-[400px] p-4 rounded-xl border border-[#D4D2CF] focus:border-[#B79A63] outline-none font-mono text-sm bg-[#F8F5F0]/30"
+                                                placeholder="Écrivez votre message ici... (Sauts de lignes préservés)"
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-[#D4D2CF] rounded-2xl overflow-hidden shadow-sm">
+                                    <CardHeader className="bg-[#F8F5F0] border-b border-[#D4D2CF]">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <CardTitle className="font-serif text-xl flex items-center gap-2">
+                                                    <History className="w-5 h-5 text-[#B79A63]" />
+                                                    Campagnes Précédentes
+                                                </CardTitle>
+                                                <CardDescription>Consultez l'historique de vos envois.</CardDescription>
+                                            </div>
+                                            <Button variant="ghost" size="sm" onClick={fetchCampaignHistory} className="text-[#B79A63]">
+                                                Actualiser
+                                            </Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-[#F8F5F0]/50 hover:bg-[#F8F5F0]/50 border-b border-[#D4D2CF]">
+                                                    <TableHead className="font-bold">Campagne</TableHead>
+                                                    <TableHead className="font-bold">Cible</TableHead>
+                                                    <TableHead className="font-bold">Date d'envoi</TableHead>
+                                                    <TableHead className="font-bold">Statut</TableHead>
+                                                    <TableHead className="text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {loadingHistory ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={5} className="text-center py-8">
+                                                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#B79A63]" />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : campaignHistory.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={5} className="text-center py-8 text-slate-400 italic">
+                                                            Aucune campagne envoyée
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    campaignHistory.map((hist) => (
+                                                        <TableRow key={hist.id} className="hover:bg-slate-50 transition-colors">
+                                                            <TableCell>
+                                                                <div className="font-bold text-[#1E1E1E]">{hist.title}</div>
+                                                                <div className="text-xs text-slate-500 truncate max-w-[200px]">{hist.subject}</div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge variant="secondary" className="bg-[#B79A63]/10 text-[#B79A63] border-none uppercase text-[10px]">
+                                                                    {hist.target_type}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-sm">
+                                                                {new Date(hist.sent_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">Envoyé</Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-[#B79A63]">
+                                                                    <Eye className="w-4 h-4" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Sidebar Options */}
+                            <div className="space-y-6">
+                                {/* REMOVED STICKY from the Card itself to avoid overlay issues on small screens/scrolling. 
+                                    Instead, let it scroll naturally or manage sticky on parent if needed.
+                                    For now, Standard scroll. */}
+                                <Card className="border-[#D4D2CF] rounded-2xl shadow-sm overflow-hidden">
+                                    <CardHeader className="bg-[#1E1E1E] text-white border-b border-[#B79A63]/30 py-4">
+                                        <CardTitle className="text-sm font-bold flex items-center gap-2 uppercase tracking-widest">
+                                            <Filter className="w-4 h-4 text-[#B79A63]" />
+                                            Ciblage
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6 bg-white">
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold uppercase text-slate-400 tracking-tighter">Type de public</label>
+                                                <Select value={campaign.target_type} onValueChange={(val) => setCampaign({ ...campaign, target_type: val })}>
+                                                    <SelectTrigger className="rounded-xl border-[#D4D2CF] h-11 bg-[#F8F5F0]/30 shadow-sm">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-[#D4D2CF]">
+                                                        <SelectItem value="providers">Tous les Prestataires</SelectItem>
+                                                        <SelectItem value="clients">Clients Inscrits</SelectItem>
+                                                        <SelectItem value="all">Tout le monde</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {campaign.target_type === 'providers' && (
+                                                <>
+                                                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                                        <label className="text-xs font-bold uppercase text-slate-400 tracking-tighter">Par Catégorie</label>
+                                                        <Select value={campaign.filters.category} onValueChange={(val) => setCampaign({ ...campaign, filters: { ...campaign.filters, category: val } })}>
+                                                            <SelectTrigger className="rounded-xl border-[#D4D2CF] h-11 bg-[#F8F5F0]/30 shadow-sm">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="rounded-xl border-[#D4D2CF]">
+                                                                <SelectItem value="all">Toutes les catégories</SelectItem>
+                                                                {categories.map(cat => (
+                                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                                        <label className="text-xs font-bold uppercase text-slate-400 tracking-tighter">Par Wilaya</label>
+                                                        <Select value={campaign.filters.wilaya} onValueChange={(val) => setCampaign({ ...campaign, filters: { ...campaign.filters, wilaya: val } })}>
+                                                            <SelectTrigger className="rounded-xl border-[#D4D2CF] h-11 bg-[#F8F5F0]/30 shadow-sm">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="rounded-xl border-[#D4D2CF]">
+                                                                <SelectItem value="all">Toutes les wilayas</SelectItem>
+                                                                {wilayas.map(w => (
+                                                                    <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-6 border-t border-[#D4D2CF]">
+                                            <div className="bg-[#F8F5F0] rounded-xl p-4 border border-[#B79A63]/20 mb-6">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <Users2 className="w-4 h-4 text-[#B79A63]" />
+                                                        <span className="text-xs font-bold text-[#1E1E1E]/70 uppercase">Audience</span>
+                                                    </div>
+                                                    <span className="text-xl font-serif font-bold text-[#1E1E1E]">{estimatedAudience.toLocaleString()}</span>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 mt-2 italic">Destinataires uniques estimés</p>
+                                            </div>
+
+                                            <Button
+                                                onClick={handleSendNewsletter}
+                                                className="w-full h-14 rounded-2xl bg-[#1E1E1E] hover:bg-black text-[#B79A63] font-bold text-lg shadow-xl shadow-black/10 transition-all active:scale-95 group"
+                                            >
+                                                Envoyer
+                                                <Send className="w-5 h-5 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <div className="p-6 bg-gradient-to-br from-[#1E1E1E] to-[#2D2D2D] rounded-2xl border border-[#B79A63]/30 text-white shadow-xl">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-8 h-8 rounded-full bg-[#B79A63] flex items-center justify-center">
+                                            <Braces className="w-4 h-4 text-[#1E1E1E]" />
+                                        </div>
+                                        <h4 className="font-serif italic text-lg">Variables</h4>
+                                    </div>
+                                    <div className="space-y-2 text-[11px] opacity-80">
+                                        <div className="flex justify-between border-b border-white/10 pb-1">
+                                            <span>Nom :</span>
+                                            <code className="text-[#B79A63]">{"{{name}}"}</code>
+                                        </div>
+                                        <div className="flex justify-between border-b border-white/10 pb-1">
+                                            <span>Entreprise :</span>
+                                            <code className="text-[#B79A63]">{"{{business}}"}</code>
+                                        </div>
+                                        <div className="mt-4 pt-2 border-t border-white/10">
+                                            <p className="text-[10px] leading-relaxed italic text-[#B79A63]/70">
+                                                Utilisez les boutons dans l'éditeur pour insérer ces variables rapidement.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            </div>
+        </AdminLayout>
+    );
+}

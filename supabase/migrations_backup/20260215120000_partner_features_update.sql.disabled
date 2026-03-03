@@ -1,0 +1,87 @@
+-- Migration: Partner Features (Soft Delete, Partner Type, Review Response)
+-- Description: Adds deleted_at, partner_type, and RPCs for soft delete and review responses.
+
+-- 1. ADD COLUMNS TO PROVIDERS
+-- ==========================================
+DO $$ 
+BEGIN
+    -- Add deleted_at if not exists
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='deleted_at') THEN
+        ALTER TABLE public.providers ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE;
+    END IF;
+
+    -- Add partner_type if not exists
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='partner_type') THEN
+        ALTER TABLE public.providers ADD COLUMN partner_type VARCHAR(50) DEFAULT 'individual'; -- 'individual', 'agency'
+        -- Add check constraint
+        ALTER TABLE public.providers ADD CONSTRAINT providers_partner_type_check CHECK (partner_type IN ('individual', 'agency'));
+    END IF;
+END $$;
+
+-- 2. ADD COLUMNS TO SERVICES
+-- ==========================================
+DO $$ 
+BEGIN
+    -- Add deleted_at if not exists
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='services' AND column_name='deleted_at') THEN
+        ALTER TABLE public.services ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE;
+    END IF;
+END $$;
+
+-- 3. UPDATE RLS POLICIES (Exclude deleted items)
+-- ==========================================
+-- NOTE: We rely on the application to filter deleted_at IS NULL mostly, 
+-- but we can update specific "Public View" policies if we want to be strict at DB level.
+-- For now, let's create a partial index to help with performance
+CREATE INDEX IF NOT EXISTS idx_providers_not_deleted ON providers(id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_services_not_deleted ON services(id) WHERE deleted_at IS NULL;
+
+-- 4. RPC: SOFT DELETE PROVIDER
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.soft_delete_provider()
+RETURNS VOID AS $$
+BEGIN
+    UPDATE public.providers
+    SET deleted_at = NOW(),
+        status = 'inactive' -- Also mark as inactive so they don't appear in search
+    WHERE user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. RPC: SOFT DELETE SERVICE
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.soft_delete_service(target_service_id UUID)
+RETURNS VOID AS $$
+BEGIN
+    -- Ensure the service belongs to the authenticated user's provider profile
+    UPDATE public.services s
+    SET deleted_at = NOW(),
+        is_active = FALSE
+    FROM public.providers p
+    WHERE s.provider_id = p.id
+    AND p.user_id = auth.uid()
+    AND s.id = target_service_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 6. RPC: RESPOND TO REVIEW
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.respond_to_review(review_id UUID, response_text TEXT)
+RETURNS VOID AS $$
+BEGIN
+    -- Update the review with the response
+    -- We restrict this to the provider who owns the service being reviewed
+    UPDATE public.reviews r
+    SET 
+        provider_response = response_text,
+        provider_responded_at = NOW()
+        -- Note: We might want to set status back to pending if we want to moderate responses?
+        -- For now, let's assume responses are auto-published if the review was already approved.
+        -- If we want moderation, we can uncomment:
+        -- , status = 'pending' 
+    FROM public.providers p
+    WHERE r.provider_id = p.id
+    AND p.user_id = auth.uid()
+    AND r.id = review_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

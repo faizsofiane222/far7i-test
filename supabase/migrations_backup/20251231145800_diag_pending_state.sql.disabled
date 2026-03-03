@@ -1,0 +1,25 @@
+-- Diagnostic: Check Provider Pending Changes State
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    RAISE NOTICE '--- Checking Providers with Pending Changes ---';
+    FOR r IN 
+        SELECT id, commercial_name, modification_submitted, 
+               CASE WHEN pending_changes IS NULL THEN 'NULL' ELSE 'PRESENT' END as pending_status
+        FROM public.providers 
+        WHERE pending_changes IS NOT NULL
+    LOOP
+        RAISE NOTICE 'Provider: %, Submitted: %, Pending Data: %', r.commercial_name, r.modification_submitted, r.pending_status;
+    END LOOP;
+    
+    RAISE NOTICE '--- Checking Services with Pending Changes ---';
+    FOR r IN 
+        SELECT id, title, modification_submitted, 
+               CASE WHEN pending_changes IS NULL THEN 'NULL' ELSE 'PRESENT' END as pending_status
+        FROM public.services
+        WHERE pending_changes IS NOT NULL
+    LOOP
+        RAISE NOTICE 'Service: %, Submitted: %, Pending Data: %', r.title, r.modification_submitted, r.pending_status;
+    END LOOP;
+END $$;

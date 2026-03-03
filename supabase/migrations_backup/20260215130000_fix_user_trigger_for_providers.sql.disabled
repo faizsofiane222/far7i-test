@@ -1,0 +1,71 @@
+-- Migration: Fix User Trigger for Providers
+-- Description: Updates handle_new_user to respect 'role' from metadata and create provider records.
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE PLPGSQL
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    default_display_name TEXT;
+    user_role TEXT;
+BEGIN
+    -- Extract display name from metadata
+    default_display_name := COALESCE(
+        NEW.raw_user_meta_data->>'full_name', 
+        NEW.raw_user_meta_data->>'name', 
+        NEW.raw_user_meta_data->>'display_name', 
+        NEW.raw_user_meta_data->>'businessName',
+        SPLIT_PART(NEW.email, '@', 1)
+    );
+
+    -- Extract Role (default to client)
+    user_role := COALESCE(NEW.raw_user_meta_data->>'role', 'client');
+
+    -- 1. Insert into public.users
+    INSERT INTO public.users (id, email, display_name, email_verified, role)
+    VALUES (
+        NEW.id, 
+        NEW.email, 
+        default_display_name,
+        NEW.email_confirmed_at IS NOT NULL,
+        user_role
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        display_name = COALESCE(public.users.display_name, EXCLUDED.display_name),
+        email_verified = EXCLUDED.email_verified,
+        role = EXCLUDED.role;
+    
+    -- 2. Insert into public.user_roles
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, user_role)
+    ON CONFLICT (user_id, role) DO NOTHING;
+
+    -- 3. If Provider, create Provider Record with Metadata
+    IF user_role = 'provider' THEN
+        INSERT INTO public.providers (
+            user_id, 
+            commercial_name, 
+            phone_number, 
+            provider_type, 
+            main_social_link,
+            email,
+            moderation_status
+        )
+        VALUES (
+            NEW.id,
+            COALESCE(NEW.raw_user_meta_data->>'business_name', NEW.raw_user_meta_data->>'businessName', default_display_name),
+            NEW.raw_user_meta_data->>'phone',
+            (NEW.raw_user_meta_data->>'partner_type')::text, -- Cast to enum logic handled by text affinity or exact match
+            NEW.raw_user_meta_data->>'social_link',
+            NEW.email,
+            'incomplete'
+        )
+        ON CONFLICT (user_id) DO NOTHING;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;

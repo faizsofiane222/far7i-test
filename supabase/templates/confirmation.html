@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #F8F5F0;
+            margin: 0;
+            padding: 0;
+            color: #1E1E1E;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border: 1px solid #D4D2CF;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            background-color: #1E1E1E;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .logo {
+            color: #B79A63;
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            letter-spacing: 1px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .content {
+            padding: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: #1E1E1E;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #B79A63;
+            color: #1E1E1E;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-family: 'Lato', sans-serif;
+            letter-spacing: 0.5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #a38855;
+        }
+
+        .footer {
+            background-color: #F8F5F0;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            border-top: 1px solid #EBE6DA;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="logo">Far7i</span>
+        </div>
+        <div class="content">
+            <h1>Bienvenue dans le cercle Far7i</h1>
+            <p>Vous êtes sur le point de rejoindre notre sélection exclusive de prestataires.</p>
+            <p>Pour activer votre vitrine et accéder à votre espace partenaire, veuillez confirmer votre adresse email
+                en cliquant sur le bouton ci-dessous.</p>
+
+            <a href="{{ .ConfirmationURL }}" class="btn">Confirmer mon inscription</a>
+
+            <p style="margin-top: 30px; font-size: 14px; color: #888;">Si vous n'êtes pas à l'origine de cette
+                inscription, ignorez simplement cet email.</p>
+        </div>
+        <div class="footer">
+            &copy; 2025 Far7i. The Gilded Sage.<br>
+            Votre partenaire de confiance pour des événements d'exception.
+        </div>
+    </div>
+</body>
+
+</html>
