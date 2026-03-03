@@ -738,7 +738,10 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                                                         onCheckedChange={(val) => setFormData({ ...formData, is_whatsapp_active: val })}
                                                                         disabled={isLocked}
                                                                     />
-                                                                    <span className="text-xs font-bold text-emerald-600">WhatsApp</span>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-xs font-bold text-emerald-600">WhatsApp</span>
+                                                                        <span className="text-[10px] text-[#1E1E1E]/40 font-medium">{formData.is_whatsapp_active ? "Actif" : "Inactif"}</span>
+                                                                    </div>
                                                                 </div>
                                                                 <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border border-[#D4D2CF]/30 shadow-sm">
                                                                     <Switch
@@ -746,7 +749,10 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                                                         onCheckedChange={(val) => setFormData({ ...formData, is_viber_active: val })}
                                                                         disabled={isLocked}
                                                                     />
-                                                                    <span className="text-xs font-bold text-purple-600">Viber</span>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-xs font-bold text-purple-600">Viber</span>
+                                                                        <span className="text-[10px] text-[#1E1E1E]/40 font-medium">{formData.is_viber_active ? "Actif" : "Inactif"}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
