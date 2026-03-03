@@ -5,21 +5,11 @@ import { UserPlus, Facebook, Instagram } from "lucide-react";
 import { RegistrationPopup } from "@/components/ui/RegistrationPopup";
 
 export function TopBar() {
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-
   return (
     <>
       <div className="sticky top-0 z-50 bg-gradient-gold shadow-lg">
-        <div className="container mx-auto px-4 h-12 flex items-center justify-between md:justify-center relative">
-          <button
-            onClick={() => setIsPopupOpen(true)}
-            className="flex items-center gap-2 bg-secondary/20 hover:bg-secondary/40 px-5 py-2 rounded-full text-sm font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-100"
-          >
-            <UserPlus size={16} className="transition-transform group-hover:rotate-12" />
-            Tenez-moi informé
-          </button>
-
-          <div className="md:absolute md:right-4 flex items-center gap-4">
+        <div className="container mx-auto px-4 h-12 flex items-center justify-end relative">
+          <div className="flex items-center gap-4">
             <a
               href="https://www.instagram.com/far7i.events?igsh=dWx5YWw1dG50dHlk"
               target="_blank"
@@ -63,7 +53,6 @@ export function TopBar() {
           </div>
         </div>
       </div>
-      <RegistrationPopup isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)} />
     </>
   );
 }

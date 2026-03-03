@@ -28,6 +28,9 @@ export interface OnboardingState {
     commercialName: string;
     wilayaId: string;
     address: string;
+    phoneNumber: string;
+    isWhatsappActive: boolean;
+    isViberActive: boolean;
     travelWilayas: string[];
     eventsAccepted: string[];
 
@@ -36,6 +39,9 @@ export interface OnboardingState {
     setCommercialName: (name: string) => void;
     setWilayaId: (id: string) => void;
     setAddress: (address: string) => void;
+    setPhoneNumber: (phone: string) => void;
+    setIsWhatsappActive: (active: boolean) => void;
+    setIsViberActive: (active: boolean) => void;
     toggleTravelWilaya: (wilayaId: string) => void;
     setEventsAccepted: (events: string[]) => void;
     toggleEventAccepted: (event: string) => void;
@@ -85,12 +91,15 @@ export interface OnboardingState {
     reset: () => void;
 }
 
-const initialState: Omit<OnboardingState, 'setStep' | 'nextStep' | 'prevStep' | 'setCategorySlug' | 'setCommercialName' | 'setWilayaId' | 'setAddress' | 'toggleTravelWilaya' | 'setEventsAccepted' | 'toggleEventAccepted' | 'updateSpecifics' | 'toggleSpecificArrayItem' | 'setDescription' | 'addMedia' | 'removeMedia' | 'setMainMedia' | 'setBasePrice' | 'togglePriceFactor' | 'reset'> = {
+const initialState: Omit<OnboardingState, 'setStep' | 'nextStep' | 'prevStep' | 'setCategorySlug' | 'setCommercialName' | 'setWilayaId' | 'setAddress' | 'setPhoneNumber' | 'setIsWhatsappActive' | 'setIsViberActive' | 'toggleTravelWilaya' | 'setEventsAccepted' | 'toggleEventAccepted' | 'updateSpecifics' | 'toggleSpecificArrayItem' | 'setDescription' | 'addMedia' | 'removeMedia' | 'setMainMedia' | 'setBasePrice' | 'togglePriceFactor' | 'reset'> = {
     step: 1,
     categorySlug: '' as CategorySlug,
     commercialName: '',
     wilayaId: '',
     address: '',
+    phoneNumber: '',
+    isWhatsappActive: false,
+    isViberActive: false,
     travelWilayas: [],
     eventsAccepted: [],
     specifics: {
@@ -118,6 +127,9 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     setCommercialName: (commercialName) => set({ commercialName }),
     setWilayaId: (wilayaId) => set({ wilayaId }),
     setAddress: (address) => set({ address }),
+    setPhoneNumber: (phoneNumber) => set({ phoneNumber }),
+    setIsWhatsappActive: (isWhatsappActive) => set({ isWhatsappActive }),
+    setIsViberActive: (isViberActive) => set({ isViberActive }),
     toggleTravelWilaya: (wilayaId) => set((state) => ({
         travelWilayas: state.travelWilayas.includes(wilayaId)
             ? state.travelWilayas.filter((w) => w !== wilayaId)

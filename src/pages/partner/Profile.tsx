@@ -77,12 +77,12 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
     // Form State
     const [formData, setFormData] = useState({
+        email: "",
         commercial_name: "",
         slug: "",
         bio: "",
         profile_picture_url: "",
         wilaya_id: "",
-        commune_id: "",
         willingness_to_travel: false,
         phone_number: "",
         is_whatsapp_active: false,
@@ -96,6 +96,9 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
     const [providerStatus, setProviderStatus] = useState<string>('incomplete');
     const [submitting, setSubmitting] = useState(false);
+
+    // Locked mode for non-approved partners
+    const isLocked = !adminMode && providerStatus !== 'approved' && providerStatus !== 'incomplete';
 
     useEffect(() => {
         fetchLookups();
@@ -166,7 +169,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                     ? { ...provider, ...(provider as any).pending_changes }
                     : provider;
 
-                console.log("Loading provider data:", dataToLoad);
+                console.log("Loading provider data from DB:", dataToLoad);
 
                 // Fallback to waitlist for missing registration data
                 let phoneFallback = dataToLoad.phone_number || "";
@@ -190,12 +193,12 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                 }
 
                 setFormData({
+                    email: (provider as any).email || (user?.email || ""),
                     commercial_name: dataToLoad.commercial_name || "",
                     slug: dataToLoad.slug || "",
                     bio: dataToLoad.bio || "",
                     profile_picture_url: dataToLoad.profile_picture_url || "",
                     wilaya_id: dataToLoad.wilaya_id || "",
-                    commune_id: dataToLoad.commune_id || "",
                     willingness_to_travel: dataToLoad.willingness_to_travel || false,
                     phone_number: phoneFallback,
                     is_whatsapp_active: dataToLoad.is_whatsapp_active || false,
@@ -206,6 +209,28 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                     years_of_experience: dataToLoad.years_of_experience || 0,
                     pending_changes: dataToLoad.pending_changes,
                 });
+            } else if (user) {
+                // No provider found in DB, use Auth metadata as fallback
+                console.log("No provider found in DB, using metadata fallback:", user.user_metadata);
+                const metadata = user.user_metadata || {};
+                setFormData({
+                    email: user.email || "",
+                    commercial_name: metadata.business_name || metadata.businessName || metadata.display_name || "",
+                    slug: "",
+                    bio: "",
+                    profile_picture_url: "",
+                    wilaya_id: metadata.wilaya_id || metadata.wilaya || "",
+                    willingness_to_travel: false,
+                    phone_number: metadata.phone || "",
+                    is_whatsapp_active: false,
+                    is_viber_active: false,
+                    social_link: metadata.social_link || metadata.socialLink || "",
+                    website_link: "",
+                    provider_type: metadata.partner_type || metadata.partnerType || "individual",
+                    years_of_experience: 0,
+                    pending_changes: null,
+                });
+                setProviderStatus('incomplete');
             }
         } catch (error: any) {
             console.error("Error in fetchProfile:", error);
@@ -327,7 +352,6 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                 bio: formData.bio,
                 profile_picture_url: formData.profile_picture_url,
                 wilaya_id: formData.wilaya_id || null,
-                commune_id: formData.commune_id || null,
                 willingness_to_travel: formData.willingness_to_travel,
                 phone_number: formData.phone_number,
                 is_whatsapp_active: formData.is_whatsapp_active,
@@ -429,7 +453,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
     };
 
     // liveScore logic removed as redundant
-    const filteredCommunes = communes.filter(c => c.wilaya_id === formData.wilaya_id);
+    // filteredCommunes logic removed as redundant (no more communes in UI)
 
     if (loading) {
         return (
@@ -462,7 +486,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                 <div className="space-y-2">
                     <h1 className="text-4xl md:text-5xl font-serif font-bold text-[#1E1E1E] tracking-tight">
-                        {adminMode ? (isNew ? "Création Prestataire" : "Édition (Admin)") : "Votre Vitrine Premium"}
+                        {adminMode ? (isNew ? "Création Prestataire" : "Édition (Admin)") : "Mon Profil"}
                     </h1>
                     <p className="text-[#1E1E1E]/60 font-lato text-base md:text-lg max-w-2xl">
                         {adminMode ? "Modification forcée du profil." : "Personnalisez votre présentation. Une page élégante et complète attire plus de futurs mariés."}
@@ -530,24 +554,31 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                 </div>
             </div>
 
-            {/* Pending Validation Banner */}
-            {!adminMode && providerStatus === 'pending' && (
-                <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                    <div className="space-y-2">
-                        <h3 className="text-xl font-serif font-bold text-amber-900">
-                            Profil en attente de validation
-                        </h3>
-                        <p className="text-amber-800 font-lato text-base max-w-3xl">
-                            Votre profil est actuellement en cours de vérification par les administrateurs Far7i. Vous pouvez déjà commencer à créer et paramétrer vos prestations. Elles seront visibles dès que votre profil sera validé.
-                        </p>
+            {/* Premium Pending Validation Banner */}
+            {!adminMode && providerStatus !== 'approved' && (
+                <div className="bg-[#B79A63]/10 border-b border-[#B79A63]/20 py-6 px-8 mb-8 mt-4 rounded-3xl mx-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center border border-[#B79A63]/30 shadow-md animate-pulse">
+                            <Clock className="w-7 h-7 text-[#B79A63]" />
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="font-serif font-bold text-xl text-[#1E1E1E]">
+                                {providerStatus === 'pending' ? "Profil en cours de validation" : "Profil à compléter"}
+                            </h3>
+                            <p className="text-[#1E1E1E]/70 max-w-2xl text-sm leading-relaxed">
+                                {providerStatus === 'pending'
+                                    ? "L'élite de l'événementiel algérien prend le temps du détail. Votre profil est en cours de revue. Préparez vos prestations en attendant la validation."
+                                    : "Votre vitrine Far7i prend forme. Complétez vos informations pour soumettre votre profil à l'équipe de modération."}
+                            </p>
+                        </div>
                     </div>
-                    <Link
-                        to="/partner/dashboard/services"
-                        className="whitespace-nowrap inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg"
+                    <GildedButton
+                        onClick={() => navigate('/partner/dashboard/services')}
+                        className="shadow-xl hover:scale-105 transition-transform"
                     >
-                        <span>Créer vos prestations</span>
-                        <ArrowRight className="w-5 h-5" />
-                    </Link>
+                        <span>Commencer mes prestations</span>
+                        <ArrowRight className="ml-2 w-5 h-5" />
+                    </GildedButton>
                 </div>
             )}
 
@@ -656,20 +687,22 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
                                         <div className="flex-1 space-y-10 w-full">
 
-                                            {/* Informations Générales (Read-Only) */}
+                                            {/* Profil Section */}
                                             <div className="space-y-6">
                                                 <div className="flex items-center gap-3 border-b border-[#F8F5F0] pb-2">
-                                                    <h3 className="text-xl font-serif font-semibold text-[#1E1E1E]">Informations Générales</h3>
+                                                    <h3 className="text-xl font-serif font-semibold text-[#1E1E1E]">Profil</h3>
                                                 </div>
 
-                                                <div className="bg-[#F8F5F0]/40 rounded-3xl p-6 md:p-8 border border-[#D4D2CF]/60 space-y-6">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="bg-[#F8F5F0]/40 rounded-3xl p-6 md:p-8 border border-[#D4D2CF]/60 space-y-8">
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                         <div className="space-y-2">
                                                             <SectionLabel icon={Store} required>Nom Commercial</SectionLabel>
                                                             <GildedInput
                                                                 value={formData.commercial_name || ""}
                                                                 onChange={(e) => setFormData({ ...formData, commercial_name: e.target.value })}
                                                                 placeholder="Le nom de votre entreprise"
+                                                                disabled={isLocked}
                                                             />
                                                         </div>
                                                         <div className="space-y-2">
@@ -677,28 +710,54 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                                             <select
                                                                 value={formData.provider_type || ""}
                                                                 onChange={(e) => setFormData({ ...formData, provider_type: e.target.value as 'agency' | 'solo' })}
-                                                                className="w-full rounded-2xl border border-[#D4D2CF] bg-[#F8F5F0]/30 px-4 py-3 text-sm focus:border-[#B79A63] focus:ring-1 focus:ring-[#B79A63] outline-none transition-all"
+                                                                className="w-full h-12 rounded-2xl border border-[#D4D2CF] bg-white px-4 py-2 text-sm focus:border-[#B79A63] focus:ring-1 focus:ring-[#B79A63] outline-none transition-all disabled:opacity-50"
+                                                                disabled={isLocked}
                                                             >
                                                                 <option value="" disabled>Sélectionnez un type</option>
                                                                 <option value="solo">Indépendant / Freelance</option>
                                                                 <option value="agency">Agence / Équipe</option>
                                                             </select>
                                                         </div>
-                                                        <div className="space-y-2">
-                                                            <SectionLabel icon={Phone} required>Téléphone</SectionLabel>
-                                                            <GildedInput
-                                                                type="tel"
-                                                                value={formData.phone_number || ""}
-                                                                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                                                                placeholder="05XX XX XX XX"
-                                                            />
+
+                                                        <div className="space-y-4">
+                                                            <div className="space-y-2">
+                                                                <SectionLabel icon={Phone} required>Téléphone</SectionLabel>
+                                                                <GildedInput
+                                                                    type="tel"
+                                                                    value={formData.phone_number || ""}
+                                                                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                                                                    placeholder="05XX XX XX XX"
+                                                                    disabled={isLocked}
+                                                                />
+                                                            </div>
+
+                                                            <div className="flex flex-wrap gap-4">
+                                                                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border border-[#D4D2CF]/30 shadow-sm">
+                                                                    <Switch
+                                                                        checked={formData.is_whatsapp_active}
+                                                                        onCheckedChange={(val) => setFormData({ ...formData, is_whatsapp_active: val })}
+                                                                        disabled={isLocked}
+                                                                    />
+                                                                    <span className="text-xs font-bold text-emerald-600">WhatsApp</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border border-[#D4D2CF]/30 shadow-sm">
+                                                                    <Switch
+                                                                        checked={formData.is_viber_active}
+                                                                        onCheckedChange={(val) => setFormData({ ...formData, is_viber_active: val })}
+                                                                        disabled={isLocked}
+                                                                    />
+                                                                    <span className="text-xs font-bold text-purple-600">Viber</span>
+                                                                </div>
+                                                            </div>
                                                         </div>
+
                                                         <div className="space-y-2">
                                                             <SectionLabel icon={MapPin} required>Wilaya</SectionLabel>
                                                             <select
                                                                 value={formData.wilaya_id || ""}
                                                                 onChange={(e) => setFormData({ ...formData, wilaya_id: e.target.value })}
-                                                                className="w-full rounded-2xl border border-[#D4D2CF] bg-[#F8F5F0]/30 px-4 py-3 text-sm focus:border-[#B79A63] focus:ring-1 focus:ring-[#B79A63] outline-none transition-all"
+                                                                className="w-full h-12 rounded-2xl border border-[#D4D2CF] bg-white px-4 py-2 text-sm focus:border-[#B79A63] focus:ring-1 focus:ring-[#B79A63] outline-none transition-all disabled:opacity-50"
+                                                                disabled={isLocked}
                                                             >
                                                                 <option value="" disabled>Sélectionnez votre Wilaya</option>
                                                                 {wilayas.map(w => (
@@ -708,24 +767,33 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                                                 ))}
                                                             </select>
                                                         </div>
+
                                                         <div className="space-y-2 md:col-span-2">
-                                                            <SectionLabel icon={Globe}>Réseau Social Principal</SectionLabel>
+                                                            <SectionLabel icon={Mail}>Email (Non modifiable)</SectionLabel>
+                                                            <div className="w-full h-12 flex items-center rounded-2xl border border-[#D4D2CF] bg-[#F8F5F0]/50 px-4 py-2 text-sm text-[#1E1E1E]/50 font-medium">
+                                                                {formData.email || user?.email}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2 md:col-span-2">
+                                                            <SectionLabel icon={Globe}>Lien Réseau Social (Instagram/Facebook)</SectionLabel>
                                                             <GildedInput
                                                                 type="url"
                                                                 value={formData.social_link || ""}
                                                                 onChange={(e) => setFormData({ ...formData, social_link: e.target.value })}
                                                                 placeholder="https://instagram.com/votre.page"
+                                                                disabled={isLocked}
                                                             />
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-
-
-
-                                            {/* La section Biographie a été supprimée suite à la demande */}
-
                                         </div>
+
+
+
+                                        {/* La section Biographie a été supprimée suite à la demande */}
+
                                     </div>
                                 </div>
                             )}
@@ -747,15 +815,15 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                             {providerStatus === 'approved' && !adminMode && (
                                                 <button
                                                     onClick={() => handleGlobalSave(false)}
-                                                    disabled={saving}
-                                                    className="px-6 h-14 text-sm font-bold uppercase tracking-widest text-[#1E1E1E]/40 hover:text-[#B79A63] transition-colors"
+                                                    disabled={saving || isLocked}
+                                                    className="px-6 h-14 text-sm font-bold uppercase tracking-widest text-[#1E1E1E]/40 hover:text-[#B79A63] transition-colors disabled:opacity-30"
                                                 >
                                                     Enregistrer Brouillon
                                                 </button>
                                             )}
                                             <GildedButton
                                                 onClick={() => handleGlobalSave(true)}
-                                                disabled={saving}
+                                                disabled={saving || isLocked}
                                                 className="w-full md:w-64 h-14 text-lg font-bold shadow-lg shadow-[#B79A63]/20"
                                             >
                                                 {saving ? (
@@ -779,15 +847,15 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                         {providerStatus === 'approved' && !adminMode && (
                                             <button
                                                 onClick={() => handleGlobalSave(false)}
-                                                disabled={saving}
-                                                className="flex-1 h-14 text-sm font-bold uppercase tracking-widest text-[#1E1E1E]/40"
+                                                disabled={saving || isLocked}
+                                                className="flex-1 h-14 text-sm font-bold uppercase tracking-widest text-[#1E1E1E]/40 disabled:opacity-30"
                                             >
                                                 Brouillon
                                             </button>
                                         )}
                                         <GildedButton
                                             onClick={() => handleGlobalSave(true)}
-                                            disabled={saving}
+                                            disabled={saving || isLocked}
                                             className="flex-[2] h-14 text-lg font-bold shadow-xl shadow-[#B79A63]/20 rounded-2xl"
                                         >
                                             {saving ? (
@@ -808,8 +876,8 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                         )
                     }
                     <RejectionModal />
-                </div >
-            </div >
-        </div >
+                </div>
+            </div>
+        </div>
     );
 }

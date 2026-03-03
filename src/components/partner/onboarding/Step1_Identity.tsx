@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GildedInput } from "@/components/ui/gilded-input";
 import { Label } from "@/components/ui/label";
 import { Check, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const CATEGORIES: { slug: CategorySlug; label: string; }[] = [
     { slug: 'lieu_de_reception', label: 'Salle des fêtes / Lieu de réception' },
@@ -26,6 +27,9 @@ export const Step1_Identity = () => {
         commercialName, setCommercialName,
         wilayaId, setWilayaId,
         address, setAddress,
+        phoneNumber, setPhoneNumber,
+        isWhatsappActive, setIsWhatsappActive,
+        isViberActive, setIsViberActive,
         eventsAccepted, toggleEventAccepted,
         travelWilayas, toggleTravelWilaya
     } = useOnboardingStore();
@@ -109,6 +113,34 @@ export const Step1_Identity = () => {
                         onChange={(e) => setAddress(e.target.value)}
                         placeholder="Ex: 12 Rue Didouche Mourad..."
                     />
+                </div>
+
+                <div className="space-y-3">
+                    <Label className="text-[#1E1E1E] text-base font-serif">Téléphone *</Label>
+                    <GildedInput
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="05XX XX XX XX"
+                    />
+                </div>
+
+                <div className="flex items-end gap-6 pb-2">
+                    <div className="flex items-center gap-3">
+                        <Switch
+                            id="whatsapp-active"
+                            checked={isWhatsappActive}
+                            onCheckedChange={setIsWhatsappActive}
+                        />
+                        <Label htmlFor="whatsapp-active" className="text-sm font-medium cursor-pointer">WhatsApp actif</Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Switch
+                            id="viber-active"
+                            checked={isViberActive}
+                            onCheckedChange={setIsViberActive}
+                        />
+                        <Label htmlFor="viber-active" className="text-sm font-medium cursor-pointer">Viber actif</Label>
+                    </div>
                 </div>
             </div>
 

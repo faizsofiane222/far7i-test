@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { TopBar } from "./TopBar";
 import { GlobalHeader } from "./GlobalHeader";
 import { GlobalFooter } from "./GlobalFooter";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
@@ -35,7 +34,6 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background font-sans antialiased flex flex-col">
       <ScrollToTopOnRouteChange />
-      <TopBar />
       <GlobalHeader />
       <main className="flex-grow">{children}</main>
       <GlobalFooter />

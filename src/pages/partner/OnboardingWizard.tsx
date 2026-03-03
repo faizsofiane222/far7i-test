@@ -77,7 +77,9 @@ export default function OnboardingWizard() {
                             category_slug: state.categorySlug,
                             events_accepted: state.eventsAccepted,
                             moderation_status: 'pending',
-                            phone_number: "" // Sera complété plus tard
+                            phone_number: state.phoneNumber,
+                            is_whatsapp_active: state.isWhatsappActive,
+                            is_viber_active: state.isViberActive
                         })
                         .select('id')
                         .single();
@@ -151,6 +153,9 @@ export default function OnboardingWizard() {
                     description: state.description,
                     base_price: Number(state.basePrice),
                     price_factors: state.priceFactors,
+                    phone_number: state.phoneNumber,
+                    is_whatsapp_active: state.isWhatsappActive,
+                    is_viber_active: state.isViberActive,
                     moderation_status: 'pending' // Mark for review
                 })
                 .eq('id', providerId);

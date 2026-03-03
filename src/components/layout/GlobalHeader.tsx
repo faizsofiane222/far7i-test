@@ -32,7 +32,7 @@ export function GlobalHeader() {
   return (
     <header
       className={cn(
-        "sticky top-12 z-40 w-full transition-all duration-300",
+        "sticky top-0 z-40 w-full transition-all duration-300",
         "bg-[#1E1E1E] shadow-md",
         isScrolled && "backdrop-blur-xl shadow-xl",
       )}

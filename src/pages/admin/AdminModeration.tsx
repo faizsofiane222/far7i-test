@@ -24,7 +24,6 @@ const FIELD_LABELS: Record<string, string> = {
     bio: "Biographie",
     phone_number: "Téléphone",
     wilaya_id: "Wilaya",
-    commune_id: "Commune",
     social_link: "Réseau Social",
     website_link: "Site Web",
     willingness_to_travel: "Déplacement",

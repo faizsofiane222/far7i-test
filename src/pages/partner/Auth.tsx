@@ -83,7 +83,7 @@ export default function PartnerAuth() {
             phone: "",
             wilaya: "",
             socialLink: "",
-            termsAccepted: undefined
+            termsAccepted: false
         },
     });
 
@@ -113,7 +113,7 @@ export default function PartnerAuth() {
                             role: "provider",
                             display_name: displayName,
                             phone: values.phone,
-                            wilaya: values.wilaya,
+                            wilaya_id: values.wilaya,
                             partner_type: values.partnerType,
                             social_link: values.socialLink,
                             business_name: values.businessName

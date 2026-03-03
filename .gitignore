@@ -44,3 +44,7 @@ yarn-error.log*
 # Logs
 logs
 *.log
+
+# Sensitive Files
+*.toml
+*.bak
