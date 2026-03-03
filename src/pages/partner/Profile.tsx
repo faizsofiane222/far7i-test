@@ -510,17 +510,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                 </div>
                             )}
 
-                            {providerStatus === 'pending' && (
-                                <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-600 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
-                                    <div className="p-1.5 bg-white rounded-lg shadow-sm border border-amber-100">
-                                        <Clock className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold uppercase tracking-wider">Validation en cours</p>
-                                        <p className="text-[10px] opacity-80 font-medium">Étude par l'équipe Far7i</p>
-                                    </div>
-                                </div>
-                            )}
+
 
                             {providerStatus === 'approved' && formData.pending_changes && (
                                 <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-blue-500/20 bg-blue-500/5 text-blue-600 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
@@ -555,30 +545,40 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
             </div>
 
             {/* Premium Pending Validation Banner */}
-            {!adminMode && providerStatus !== 'approved' && (
-                <div className="bg-[#B79A63]/10 border-b border-[#B79A63]/20 py-6 px-8 mb-8 mt-4 rounded-3xl mx-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
+            {!adminMode && providerStatus === 'pending' && (
+                <div className="bg-amber-500/10 border-l-4 border-amber-500 py-6 px-8 mb-8 mt-4 rounded-r-3xl mx-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
                     <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center border border-[#B79A63]/30 shadow-md animate-pulse">
-                            <Clock className="w-7 h-7 text-[#B79A63]" />
+                        <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center border border-amber-500/30 shadow-md animate-pulse shrink-0">
+                            <Clock className="w-7 h-7 text-amber-500" />
                         </div>
-                        <div className="space-y-1">
-                            <h3 className="font-serif font-bold text-xl text-[#1E1E1E]">
-                                {providerStatus === 'pending' ? "Profil en cours de validation" : "Profil à compléter"}
+                        <div className="space-y-2">
+                            <h3 className="font-serif font-bold text-xl text-amber-900">
+                                Profil en cours de validation
                             </h3>
-                            <p className="text-[#1E1E1E]/70 max-w-2xl text-sm leading-relaxed">
-                                {providerStatus === 'pending'
-                                    ? "L'élite de l'événementiel algérien prend le temps du détail. Votre profil est en cours de revue. Préparez vos prestations en attendant la validation."
-                                    : "Votre vitrine Far7i prend forme. Complétez vos informations pour soumettre votre profil à l'équipe de modération."}
+                            <p className="text-amber-800/80 max-w-2xl text-sm leading-relaxed">
+                                L'élite de l'événementiel algérien prend le temps du détail. Votre profil est en cours de revue. Préparez vos prestations en attendant la validation.
+                                <br /><span className="font-semibold block mt-1">Vos informations sont verrouillées pour le moment. Vous pourrez les modifier une fois votre compte validé.</span>
                             </p>
                         </div>
                     </div>
-                    <GildedButton
-                        onClick={() => navigate('/partner/dashboard/services')}
-                        className="shadow-xl hover:scale-105 transition-transform"
-                    >
-                        <span>Commencer mes prestations</span>
-                        <ArrowRight className="ml-2 w-5 h-5" />
-                    </GildedButton>
+                    <div className="flex shrink-0">
+                        <GildedButton
+                            onClick={() => navigate('/partner/dashboard/services')}
+                            className="shadow-xl bg-amber-600 hover:bg-amber-700 text-white border-none hover:scale-105 transition-transform"
+                        >
+                            <span>Commencer mes prestations</span>
+                            <ArrowRight className="ml-2 w-5 h-5" />
+                        </GildedButton>
+                    </div>
+                </div>
+            )}
+
+            {!adminMode && providerStatus === 'incomplete' && (
+                <div className="bg-[#B79A63]/10 border-b border-[#B79A63]/20 py-6 px-8 mb-8 mt-4 rounded-3xl mx-6 shadow-sm flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-top-4 duration-700">
+                    <h3 className="font-serif font-bold text-xl text-[#1E1E1E] mb-2">Profil à compléter</h3>
+                    <p className="text-[#1E1E1E]/70 max-w-2xl text-sm leading-relaxed">
+                        Votre vitrine Far7i prend forme. Complétez vos informations et enregistrez pour soumettre votre profil à l'équipe de modération.
+                    </p>
                 </div>
             )}
 
@@ -801,7 +801,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                     </section>
 
                     {
-                        isFormVisible && (
+                        isFormVisible && !isLocked && (
                             <>
                                 {/* Removed Expertise and Location Sections to simplify the profile as requested */}
 
@@ -815,7 +815,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                             {providerStatus === 'approved' && !adminMode && (
                                                 <button
                                                     onClick={() => handleGlobalSave(false)}
-                                                    disabled={saving || isLocked}
+                                                    disabled={saving}
                                                     className="px-6 h-14 text-sm font-bold uppercase tracking-widest text-[#1E1E1E]/40 hover:text-[#B79A63] transition-colors disabled:opacity-30"
                                                 >
                                                     Enregistrer Brouillon
@@ -823,7 +823,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                             )}
                                             <GildedButton
                                                 onClick={() => handleGlobalSave(true)}
-                                                disabled={saving || isLocked}
+                                                disabled={saving}
                                                 className="w-full md:w-64 h-14 text-lg font-bold shadow-lg shadow-[#B79A63]/20"
                                             >
                                                 {saving ? (
@@ -847,7 +847,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                         {providerStatus === 'approved' && !adminMode && (
                                             <button
                                                 onClick={() => handleGlobalSave(false)}
-                                                disabled={saving || isLocked}
+                                                disabled={saving}
                                                 className="flex-1 h-14 text-sm font-bold uppercase tracking-widest text-[#1E1E1E]/40 disabled:opacity-30"
                                             >
                                                 Brouillon
@@ -855,7 +855,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                         )}
                                         <GildedButton
                                             onClick={() => handleGlobalSave(true)}
-                                            disabled={saving || isLocked}
+                                            disabled={saving}
                                             className="flex-[2] h-14 text-lg font-bold shadow-xl shadow-[#B79A63]/20 rounded-2xl"
                                         >
                                             {saving ? (
