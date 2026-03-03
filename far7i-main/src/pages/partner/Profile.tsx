@@ -349,17 +349,13 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
             const profileData: Record<string, any> = {
                 commercial_name: formData.commercial_name,
-                bio: formData.bio,
                 profile_picture_url: formData.profile_picture_url,
                 wilaya_id: formData.wilaya_id || null,
-                willingness_to_travel: formData.willingness_to_travel,
                 phone_number: formData.phone_number,
                 is_whatsapp_active: formData.is_whatsapp_active,
                 is_viber_active: formData.is_viber_active,
                 social_link: formData.social_link,
-                website_link: formData.website_link,
                 provider_type: formData.provider_type,
-                years_of_experience: formData.years_of_experience,
                 updated_at: new Date().toISOString(),
             };
 
