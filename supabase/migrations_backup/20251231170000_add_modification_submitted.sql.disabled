@@ -1,0 +1,35 @@
+-- Migration: Add modification_submitted column
+-- Description: Adds the modification_submitted boolean column to providers and services tables
+
+-- Add column to providers table
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='providers' AND column_name='modification_submitted'
+    ) THEN
+        ALTER TABLE public.providers 
+        ADD COLUMN modification_submitted BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
+
+-- Add column to services table
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='services' AND column_name='modification_submitted'
+    ) THEN
+        ALTER TABLE public.services 
+        ADD COLUMN modification_submitted BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
+
+-- Update existing records with pending_changes to set modification_submitted = true
+UPDATE public.providers 
+SET modification_submitted = true 
+WHERE pending_changes IS NOT NULL AND pending_changes::text != 'null';
+
+UPDATE public.services 
+SET modification_submitted = true 
+WHERE pending_changes IS NOT NULL AND pending_changes::text != 'null';
