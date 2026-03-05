@@ -102,16 +102,16 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ userId, currentUrl, 
 
     return (
         <div className="relative group shrink-0">
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#F8F5F0] border-2 border-[#D4D2CF] flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:border-[#B79A63]/50 shadow-sm">
+            <div className="w-36 h-36 md:w-40 md:h-40 rounded-full bg-[#F8F5F0] border-2 border-[#D4D2CF] flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:border-[#B79A63]/50 shadow-sm">
                 {uploading ? (
                     <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="w-8 h-8 animate-spin text-[#B79A63]" />
+                        <Loader2 className="w-10 h-10 animate-spin text-[#B79A63]" />
                         <span className="text-[10px] font-bold text-[#B79A63] uppercase tracking-wider">Traitement...</span>
                     </div>
                 ) : currentUrl ? (
                     <img src={currentUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                    <User className="w-12 h-12 text-[#B79A63]" />
+                    <User className="w-16 h-16 text-[#B79A63]" />
                 )}
             </div>
 
@@ -123,14 +123,14 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({ userId, currentUrl, 
             >
                 {!uploading && (
                     <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="w-8 h-8 text-white mb-1" />
+                        <Camera className="w-10 h-10 text-white mb-1" />
                         <span className="text-[10px] font-bold text-white uppercase tracking-wider">Changer</span>
                     </div>
                 )}
 
                 {!uploading && (
-                    <div className="absolute bottom-1 right-1 p-2 bg-[#B79A63] text-white rounded-full shadow-lg border-2 border-white group-hover:opacity-0 transition-opacity">
-                        <Camera className="w-4 h-4" />
+                    <div className="absolute bottom-2 right-2 p-2.5 bg-[#B79A63] text-white rounded-full shadow-lg border-2 border-white group-hover:opacity-0 transition-opacity">
+                        <Camera className="w-5 h-5" />
                     </div>
                 )}
 

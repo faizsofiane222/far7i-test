@@ -510,7 +510,17 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                 </div>
                             )}
 
-
+                            {providerStatus === 'pending' && (
+                                <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-600 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <div className="p-1.5 bg-white rounded-lg shadow-sm border border-orange-100">
+                                        <Clock className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-wider">En cours de validation</p>
+                                        <p className="text-[10px] opacity-80 font-medium">Profil en attente de revue</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {providerStatus === 'approved' && formData.pending_changes && (
                                 <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-blue-500/20 bg-blue-500/5 text-blue-600 shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
@@ -668,7 +678,10 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
                             {/* MAIN FORM CONTENT */}
                             {isFormVisible && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                <div className={cn(
+                                    "space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500",
+                                    isLocked && "opacity-60 pointer-events-none select-none cursor-not-allowed"
+                                )}>
                                     <div className="flex flex-col md:flex-row gap-10 pt-4">
                                         {/* Avatar Section */}
                                         <div className="flex flex-col items-center space-y-4 md:w-1/3 xl:w-1/4">
