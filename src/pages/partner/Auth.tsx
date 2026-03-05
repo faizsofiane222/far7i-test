@@ -7,7 +7,7 @@ import { GildedInput } from "./components/GildedInput";
 import { GildedButton } from "./components/GildedButton";
 import { PasswordInput } from "@/components/ui/password-input";
 import { toast } from "sonner";
-import { Loader2, AlertCircle, Phone, Check, ArrowRight } from "lucide-react";
+import { Loader2, AlertCircle, Phone, Check, ArrowRight, Camera, User } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 type AuthMode = "login" | "signup";
 
@@ -50,6 +50,9 @@ export default function PartnerAuth() {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showCGU, setShowCGU] = useState(false);
     const [wilayas, setWilayas] = useState<{ id: string, name: string, code: string }[]>([]);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string>("");
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchWilayas = async () => {
@@ -123,6 +126,25 @@ export default function PartnerAuth() {
 
                 if (error) throw error;
 
+                // Upload avatar if provided
+                if (avatarFile && data.user) {
+                    try {
+                        const ext = avatarFile.name.split('.').pop() || 'jpg';
+                        const path = `${data.user.id}/${Date.now()}.${ext}`;
+                        const { error: uploadError } = await supabase.storage
+                            .from('provider-profiles')
+                            .upload(path, avatarFile, { upsert: true });
+                        if (!uploadError) {
+                            const { data: { publicUrl } } = supabase.storage
+                                .from('provider-profiles')
+                                .getPublicUrl(path);
+                            await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', data.user.id);
+                        }
+                    } catch (avatarErr) {
+                        console.warn('Avatar upload failed, continuing:', avatarErr);
+                    }
+                }
+
                 // Show success modal
                 setShowSuccessModal(true);
             }
@@ -165,12 +187,48 @@ export default function PartnerAuth() {
                         {/* Fields specific to Signup */}
                         {mode === "signup" && (
                             <>
+                                {/* Avatar Picker */}
+                                <div className="flex flex-col items-center gap-2 py-2">
+                                    <div
+                                        className="relative group w-24 h-24 rounded-full bg-[#F8F5F0] border-2 border-[#D4D2CF] flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#B79A63] transition-all duration-300"
+                                        onClick={() => avatarInputRef.current?.click()}
+                                    >
+                                        {avatarPreview ? (
+                                            <img src={avatarPreview} alt="Aperçu" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User className="w-10 h-10 text-[#B79A63]" />
+                                        )}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/0 group-hover:bg-black/40 rounded-full transition-all duration-300">
+                                            <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Camera className="w-6 h-6 text-white mb-1" />
+                                                <span className="text-[9px] font-bold text-white uppercase tracking-wider">Photo</span>
+                                            </div>
+                                        </div>
+                                        <div className="absolute bottom-1 right-1 p-1.5 bg-[#B79A63] text-white rounded-full shadow-lg border-2 border-white group-hover:opacity-0 transition-opacity">
+                                            <Camera className="w-3 h-3" />
+                                        </div>
+                                    </div>
+                                    <span className="text-xs text-slate-400">Photo de profil (optionnelle)</span>
+                                    <input
+                                        ref={avatarInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+                                            setAvatarFile(file);
+                                            setAvatarPreview(URL.createObjectURL(file));
+                                        }}
+                                    />
+                                </div>
                                 <FormField
                                     control={form.control}
                                     name="businessName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Nom Commercial (Entreprise)</FormLabel>
+                                            <FormLabel>Nom Commercial (Entreprise) <span className="text-red-500">*</span></FormLabel>
                                             <FormControl><GildedInput {...field} placeholder="Ex: Studio Lumière" /></FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -183,7 +241,7 @@ export default function PartnerAuth() {
                                         name="partnerType"
                                         render={({ field }) => (
                                             <FormItem className="space-y-3">
-                                                <FormLabel>Vous êtes ?</FormLabel>
+                                                <FormLabel>Vous êtes ? <span className="text-red-500">*</span></FormLabel>
                                                 <FormControl>
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
@@ -225,7 +283,7 @@ export default function PartnerAuth() {
                                         <FormItem>
                                             <FormLabel className="flex items-center gap-2 text-sm font-medium text-[#1E1E1E]">
                                                 <Phone className="w-4 h-4 text-[#B79A63]" />
-                                                Numéro de téléphone
+                                                Numéro de téléphone <span className="text-red-500">*</span>
                                             </FormLabel>
                                             <FormControl><GildedInput {...field} placeholder="Ex: 05 50..." /></FormControl>
                                             <FormMessage />
@@ -238,7 +296,7 @@ export default function PartnerAuth() {
                                     name="wilaya"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Wilaya</FormLabel>
+                                            <FormLabel>Wilaya <span className="text-red-500">*</span></FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger className="mt-1 h-12 md:h-14 bg-[#F8F5F0]/30 border-[#D4D2CF] rounded-xl px-4 hover:border-[#B79A63] focus:ring-[#B79A63] focus:border-[#B79A63] transition-all">
@@ -277,7 +335,7 @@ export default function PartnerAuth() {
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email Professionnel</FormLabel>
+                                    <FormLabel>Email Professionnel <span className="text-red-500">*</span></FormLabel>
                                     <FormControl><GildedInput {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -289,7 +347,7 @@ export default function PartnerAuth() {
                             name="password"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Mot de passe</FormLabel>
+                                    <FormLabel>Mot de passe <span className="text-red-500">*</span></FormLabel>
                                     <FormControl><PasswordInput {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -303,7 +361,7 @@ export default function PartnerAuth() {
                                     name="confirmPassword"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Confirmer le mot de passe</FormLabel>
+                                            <FormLabel>Confirmer le mot de passe <span className="text-red-500">*</span></FormLabel>
                                             <FormControl><PasswordInput {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
