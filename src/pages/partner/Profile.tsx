@@ -97,8 +97,8 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
     const [providerStatus, setProviderStatus] = useState<string>('incomplete');
     const [submitting, setSubmitting] = useState(false);
 
-    // Locked mode for non-approved partners
-    const isLocked = !adminMode && providerStatus !== 'approved' && providerStatus !== 'incomplete';
+    // Locked mode: lock when pending OR incomplete (unlocked only when approved or rejected)
+    const isLocked = !adminMode && (providerStatus === 'pending' || providerStatus === 'incomplete');
 
     useEffect(() => {
         fetchLookups();
@@ -562,10 +562,10 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                             <Clock className="w-7 h-7 text-amber-500" />
                         </div>
                         <div className="space-y-2">
-                            <h3 className="font-serif font-bold text-xl text-amber-900">
+                            <h3 className="font-serif font-bold text-xl text-orange-600">
                                 Profil en cours de validation
                             </h3>
-                            <p className="text-amber-800/80 max-w-2xl text-sm leading-relaxed">
+                            <p className="text-orange-500 max-w-2xl text-sm leading-relaxed">
                                 L'élite de l'événementiel algérien prend le temps du détail. Votre profil est en cours de revue. Préparez vos prestations en attendant la validation.
                                 <br /><span className="font-semibold block mt-1">Vos informations sont verrouillées pour le moment. Vous pourrez les modifier une fois votre compte validé.</span>
                             </p>
@@ -584,10 +584,20 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
             )}
 
             {!adminMode && providerStatus === 'incomplete' && (
-                <div className="bg-[#B79A63]/10 border-b border-[#B79A63]/20 py-6 px-8 mb-8 mt-4 rounded-3xl mx-6 shadow-sm flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-top-4 duration-700">
-                    <h3 className="font-serif font-bold text-xl text-[#1E1E1E] mb-2">Profil à compléter</h3>
-                    <p className="text-[#1E1E1E]/70 max-w-2xl text-sm leading-relaxed">
+                <div className="bg-orange-50 border-l-4 border-orange-400 py-6 px-8 mb-8 mt-4 rounded-r-3xl mx-6 shadow-sm flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-top-4 duration-700">
+                    <h3 className="font-serif font-bold text-xl text-orange-600 mb-2">Profil à compléter</h3>
+                    <p className="text-orange-500 max-w-2xl text-sm leading-relaxed">
                         Votre vitrine Far7i prend forme. Complétez vos informations et enregistrez pour soumettre votre profil à l'équipe de modération.
+                    </p>
+                </div>
+            )}
+
+            {/* Info message when form is locked */}
+            {!adminMode && isLocked && (
+                <div className="mx-6 mb-4 px-5 py-4 bg-orange-50 border border-orange-200 rounded-2xl flex items-start gap-3 animate-in fade-in duration-500">
+                    <AlertCircle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+                    <p className="text-sm font-medium text-orange-700">
+                        Vous pourrez modifier vos informations une fois votre profil validé par un administrateur.
                     </p>
                 </div>
             )}
