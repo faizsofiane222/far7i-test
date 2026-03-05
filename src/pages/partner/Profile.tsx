@@ -554,53 +554,107 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                 </div>
             </div>
 
-            {/* Premium Pending Validation Banner */}
-            {!adminMode && providerStatus === 'pending' && (
-                <div className="bg-amber-500/10 border-l-4 border-amber-500 py-6 px-8 mb-8 mt-4 rounded-r-3xl mx-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
-                    <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center border border-amber-500/30 shadow-md animate-pulse shrink-0">
-                            <Clock className="w-7 h-7 text-amber-500" />
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="font-serif font-bold text-xl text-orange-600">
-                                Profil en cours de validation
-                            </h3>
-                            <p className="text-orange-500 max-w-2xl text-sm leading-relaxed">
-                                L'élite de l'événementiel algérien prend le temps du détail. Votre profil est en cours de revue. Préparez vos prestations en attendant la validation.
-                                <br /><span className="font-semibold block mt-1">Vos informations sont verrouillées pour le moment. Vous pourrez les modifier une fois votre compte validé.</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex shrink-0">
-                        <GildedButton
-                            onClick={() => navigate('/partner/dashboard/services')}
-                            className="shadow-xl bg-amber-600 hover:bg-amber-700 text-white border-none hover:scale-105 transition-transform"
-                        >
-                            <span>Commencer mes prestations</span>
-                            <ArrowRight className="ml-2 w-5 h-5" />
-                        </GildedButton>
-                    </div>
-                </div>
-            )}
+            {/* ── Dynamic Status Banner ─────────────────────────────────────────── */}
+            {!adminMode && (() => {
+                switch (providerStatus) {
 
-            {!adminMode && providerStatus === 'incomplete' && (
-                <div className="bg-orange-50 border-l-4 border-orange-400 py-6 px-8 mb-8 mt-4 rounded-r-3xl mx-6 shadow-sm flex flex-col items-center justify-center text-center animate-in fade-in slide-in-from-top-4 duration-700">
-                    <h3 className="font-serif font-bold text-xl text-orange-600 mb-2">Profil à compléter</h3>
-                    <p className="text-orange-500 max-w-2xl text-sm leading-relaxed">
-                        Votre vitrine Far7i prend forme. Complétez vos informations et enregistrez pour soumettre votre profil à l'équipe de modération.
-                    </p>
-                </div>
-            )}
+                    case 'incomplete':
+                        return (
+                            <div className="bg-orange-50 border-l-4 border-orange-400 py-6 px-8 mb-4 mt-4 rounded-r-3xl mx-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+                                <div className="flex items-center gap-4 mb-3">
+                                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                                        <AlertCircle className="w-5 h-5 text-orange-500" />
+                                    </div>
+                                    <h3 className="font-serif font-bold text-xl text-orange-600">Profil à compléter</h3>
+                                </div>
+                                <p className="text-orange-500 text-sm leading-relaxed ml-14">
+                                    Votre vitrine Far7i prend forme. Complétez vos informations et enregistrez pour soumettre votre profil à l'équipe de modération.
+                                </p>
+                                <p className="text-orange-600 font-semibold text-sm mt-2 ml-14">
+                                    Vous pourrez modifier vos informations une fois votre profil validé par un administrateur.
+                                </p>
+                            </div>
+                        );
 
-            {/* Info message when form is locked */}
-            {!adminMode && isLocked && (
-                <div className="mx-6 mb-4 px-5 py-4 bg-orange-50 border border-orange-200 rounded-2xl flex items-start gap-3 animate-in fade-in duration-500">
-                    <AlertCircle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
-                    <p className="text-sm font-medium text-orange-700">
-                        Vous pourrez modifier vos informations une fois votre profil validé par un administrateur.
-                    </p>
-                </div>
-            )}
+                    case 'pending':
+                        return (
+                            <div className="bg-amber-500/10 border-l-4 border-orange-500 py-6 px-8 mb-4 mt-4 rounded-r-3xl mx-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center border border-orange-400/30 shadow-md animate-pulse shrink-0">
+                                            <Clock className="w-7 h-7 text-orange-500" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h3 className="font-serif font-bold text-xl text-orange-600">
+                                                En cours de validation
+                                            </h3>
+                                            <p className="text-orange-500 max-w-2xl text-sm leading-relaxed">
+                                                Votre profil a bien été enregistré et est actuellement en cours d'examen par notre équipe de modération.
+                                            </p>
+                                            <p className="text-orange-600 font-semibold text-xs mt-1">
+                                                Vous pourrez modifier vos informations une fois votre profil validé par un administrateur.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex shrink-0">
+                                        <GildedButton
+                                            onClick={() => navigate('/partner/dashboard/services')}
+                                            className="shadow-xl bg-orange-500 hover:bg-orange-600 text-white border-none hover:scale-105 transition-transform"
+                                        >
+                                            <span>Préparer mes prestations</span>
+                                            <ArrowRight className="ml-2 w-5 h-5" />
+                                        </GildedButton>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'approved':
+                        return formData.pending_changes ? (
+                            <div className="bg-blue-50 border-l-4 border-blue-400 py-4 px-8 mb-4 mt-4 rounded-r-3xl mx-6 shadow-sm animate-in fade-in duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                        <Clock className="w-5 h-5 text-blue-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sm text-blue-700 uppercase tracking-wide">Modifications en cours de validation</h3>
+                                        <p className="text-blue-600 text-sm">Votre vitrine est en ligne avec l'ancienne version. Les nouvelles infos seront publiées après validation.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-emerald-50 border-l-4 border-emerald-400 py-4 px-8 mb-4 mt-4 rounded-r-3xl mx-6 shadow-sm animate-in fade-in duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                                        <CheckCircle className="w-5 h-5 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sm text-emerald-700 uppercase tracking-wide">Vitrine active &amp; visible</h3>
+                                        <p className="text-emerald-600 text-sm">Votre profil est validé. Vous êtes visible par les futurs mariés sur Far7i.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'rejected':
+                        return (
+                            <div className="bg-red-50 border-l-4 border-red-400 py-4 px-8 mb-4 mt-4 rounded-r-3xl mx-6 shadow-sm animate-in fade-in duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                                        <AlertCircle className="w-5 h-5 text-red-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sm text-red-700 uppercase tracking-wide">Modifications requises</h3>
+                                        <p className="text-red-600 text-sm">Votre profil a été refusé. Veuillez consulter les notes de l'administrateur et corriger les informations demandées.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    default:
+                        return null;
+                }
+            })()}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-12 space-y-8">
