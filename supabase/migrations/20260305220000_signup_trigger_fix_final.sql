@@ -79,16 +79,12 @@ BEGIN
             -- DYNAMIC INSERT: Only insert columns that exist
             -- This prevents "column x does not exist" errors
             EXECUTE format(
-                'INSERT INTO public.providers (user_id, commercial_name, provider_type, moderation_status %s %s %s) 
-                 VALUES ($1, $2, $3, $4 %s %s %s) ON CONFLICT (user_id) DO NOTHING',
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''phone_number'') THEN '', phone_number'' ELSE '''' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''social_link'') THEN '', social_link'' 
-                     WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''main_social_link'') THEN '', main_social_link'' ELSE '''' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''wilaya_id'') THEN '', wilaya_id'' ELSE '''' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''phone_number'') THEN '', $5'' ELSE '''' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''social_link'') THEN '', $6'' 
-                     WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''main_social_link'') THEN '', $6'' ELSE '''' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name=''providers'' AND column_name=''wilaya_id'') THEN '', $7'' ELSE '''' END
+                'INSERT INTO public.providers (user_id, commercial_name, provider_type, moderation_status %s %s) 
+                 VALUES ($1, $2, $3, $4 %s %s) ON CONFLICT (user_id) DO NOTHING',
+                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='phone_number') THEN ', phone_number' ELSE '' END,
+                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='wilaya_id') THEN ', wilaya_id' ELSE '' END,
+                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='phone_number') THEN ', $5' ELSE '' END,
+                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='wilaya_id') THEN ', $6' ELSE '' END
             )
             USING 
                 NEW.id, 
@@ -96,7 +92,6 @@ BEGIN
                 p_type_val,
                 'pending',
                 COALESCE(NEW.raw_user_meta_data->>'phone', '0000000000'),
-                NEW.raw_user_meta_data->>'social_link',
                 p_wilaya_id;
         EXCEPTION WHEN OTHERS THEN
             -- Last resort: Minimalist insert
