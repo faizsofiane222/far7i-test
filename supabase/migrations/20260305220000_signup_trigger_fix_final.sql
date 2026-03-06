@@ -56,6 +56,9 @@ BEGIN
 
     -- 4. Sync to public.providers (if role is provider)
     IF user_role = 'provider' THEN
+        DECLARE
+            p_cols TEXT := 'user_id, commercial_name, provider_type, moderation_status';
+            p_vals TEXT := '$1, $2, $3, $4';
         BEGIN
             -- Determine provider type
             IF (NEW.raw_user_meta_data->>'partner_type') = 'agency' THEN
@@ -64,7 +67,7 @@ BEGIN
                 p_type_val := 'individual'::public.provider_type;
             END IF;
 
-            -- Determine wilaya_id (with fallback)
+            -- Determine wilaya_id
             BEGIN
                 IF (NEW.raw_user_meta_data->>'wilaya_id') IS NOT NULL AND (NEW.raw_user_meta_data->>'wilaya_id') != '' THEN
                     p_wilaya_id := (NEW.raw_user_meta_data->>'wilaya_id')::UUID;
@@ -76,31 +79,40 @@ BEGIN
             EXCEPTION WHEN OTHERS THEN p_wilaya_id := NULL;
             END;
 
-            -- DYNAMIC INSERT: Only insert columns that exist
-            -- This prevents "column x does not exist" errors
-            EXECUTE format(
-                'INSERT INTO public.providers (user_id, commercial_name, provider_type, moderation_status %s %s) 
-                 VALUES ($1, $2, $3, $4 %s %s) ON CONFLICT (user_id) DO NOTHING',
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='phone_number') THEN ', phone_number' ELSE '' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='wilaya_id') THEN ', wilaya_id' ELSE '' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='phone_number') THEN ', $5' ELSE '' END,
-                CASE WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='wilaya_id') THEN ', $6' ELSE '' END
-            )
+            -- Build the dynamic query based on existing columns
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='phone_number') THEN
+                p_cols := p_cols || ', phone_number';
+                p_vals := p_vals || ', $5';
+            END IF;
+
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='wilaya_id') THEN
+                p_cols := p_cols || ', wilaya_id';
+                p_vals := p_vals || ', $6';
+            END IF;
+
+            -- Also check for social_link or main_social_link
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='social_link') THEN
+                p_cols := p_cols || ', social_link';
+                p_vals := p_vals || ', $7';
+            ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='main_social_link') THEN
+                p_cols := p_cols || ', main_social_link';
+                p_vals := p_vals || ', $7';
+            END IF;
+
+            EXECUTE format('INSERT INTO public.providers (%s) VALUES (%s) ON CONFLICT (user_id) DO NOTHING', p_cols, p_vals)
             USING 
                 NEW.id, 
                 COALESCE(NEW.raw_user_meta_data->>'business_name', NEW.raw_user_meta_data->>'businessName', default_display_name),
                 p_type_val,
                 'pending',
                 COALESCE(NEW.raw_user_meta_data->>'phone', '0000000000'),
-                p_wilaya_id;
+                p_wilaya_id,
+                NEW.raw_user_meta_data->>'social_link';
         EXCEPTION WHEN OTHERS THEN
-            -- Last resort: Minimalist insert
-            BEGIN
-                INSERT INTO public.providers (user_id, commercial_name)
-                VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'business_name', default_display_name))
-                ON CONFLICT (user_id) DO NOTHING;
-            EXCEPTION WHEN OTHERS THEN NULL;
-            END;
+            -- Minimalist backup
+            INSERT INTO public.providers (user_id, commercial_name)
+            VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'business_name', default_display_name))
+            ON CONFLICT (user_id) DO NOTHING;
         END;
     END IF;
 
