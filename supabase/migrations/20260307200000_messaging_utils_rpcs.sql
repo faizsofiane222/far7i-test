@@ -1,6 +1,15 @@
 -- Migration to add essential messaging and notification utility RPCs
 -- These are called by useNotifications hook and other UI components
 
+-- DROP EXISTING TO AVOID RETURN TYPE CONFLICTS
+DROP FUNCTION IF EXISTS public.is_admin();
+DROP FUNCTION IF EXISTS public.get_unread_messages_count();
+DROP FUNCTION IF EXISTS public.get_unread_notifications_count();
+DROP FUNCTION IF EXISTS public.get_pending_moderation_count();
+DROP FUNCTION IF EXISTS public.mark_notification_read(UUID);
+DROP FUNCTION IF EXISTS public.mark_all_notifications_read();
+DROP FUNCTION IF EXISTS public.mark_conversation_read(UUID);
+
 -- 1. Check if user is admin
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean AS $$
