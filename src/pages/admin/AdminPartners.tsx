@@ -216,15 +216,15 @@ export default function AdminPartners() {
                                                                         </div>
                                                                         <div>
                                                                             <span className="text-sm font-bold text-[#1E1E1E]">Profil Partenaire</span>
-                                                                            {partner.profile.pending_updates && (
+                                                                            {partner.profile?.pending_updates && (
                                                                                 <span className="ml-2 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold uppercase">Mise à jour</span>
                                                                             )}
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-4">
                                                                         <div className="flex items-center gap-2">
-                                                                            {getStatusIcon(partner.profile.status)}
-                                                                            <span className="text-xs capitalize text-slate-500 font-medium">{partner.profile.status}</span>
+                                                                            {getStatusIcon(partner.profile?.status ?? 'pending')}
+                                                                            <span className="text-xs capitalize text-slate-500 font-medium">{partner.profile?.status ?? 'pending'}</span>
                                                                         </div>
                                                                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover/item:translate-x-1 transition-transform" />
                                                                     </div>
