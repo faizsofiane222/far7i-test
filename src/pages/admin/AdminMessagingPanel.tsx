@@ -20,7 +20,9 @@ import {
     ArrowLeft,
     ShieldCheck,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    Eye as EyeIcon,
+    History as HistoryIcon
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -785,7 +787,7 @@ export default function AdminMessagingPanel() {
                                                 <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
                                                     <DialogTrigger asChild>
                                                         <Button variant="outline" size="sm" className="bg-[#FAF9F6] border-[#D4D2CF] text-xs">
-                                                            <Eye className="w-3 h-3 mr-1" /> Prévisualiser
+                                                            <EyeIcon className="w-3 h-3 mr-1" /> Prévisualiser
                                                         </Button>
                                                     </DialogTrigger>
                                                     <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden rounded-2xl border-[#D4D2CF]">
@@ -819,7 +821,7 @@ export default function AdminMessagingPanel() {
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <CardTitle className="font-serif text-xl flex items-center gap-2">
-                                                    <History className="w-5 h-5 text-[#B79A63]" />
+                                                    <HistoryIcon className="w-5 h-5 text-[#B79A63]" />
                                                     Campagnes Précédentes
                                                 </CardTitle>
                                                 <CardDescription>Consultez l'historique de vos envois.</CardDescription>
@@ -873,7 +875,7 @@ export default function AdminMessagingPanel() {
                                                             </TableCell>
                                                             <TableCell className="text-right">
                                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-[#B79A63]">
-                                                                    <Eye className="w-4 h-4" />
+                                                                    <EyeIcon className="w-4 h-4" />
                                                                 </Button>
                                                             </TableCell>
                                                         </TableRow>
