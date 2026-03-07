@@ -68,33 +68,27 @@ DECLARE
     v_pending_services BIGINT;
     v_wilaya_dist JSON;
 BEGIN
-    -- Total Partners (Users with role provider)
     SELECT COUNT(DISTINCT ur.user_id) INTO v_total_providers
     FROM public.user_roles ur
     WHERE ur.role = 'provider';
 
-    -- Total Services entries in providers table
     SELECT COUNT(*) INTO v_total_services
     FROM public.providers;
 
-    -- Pending unique providers: covers both old 'moderation_status' and new 'status' columns
-    -- Also includes profiles with pending_updates (prestataires qui ont soumis des modifs)
     SELECT COUNT(DISTINCT user_id) INTO v_pending_providers
     FROM public.providers
     WHERE 
         status = 'pending' 
         OR moderation_status = 'pending'
-        OR (pending_updates IS NOT NULL AND status != 'rejected');
+        OR (pending_updates IS NOT NULL AND COALESCE(status, moderation_status) != 'rejected');
 
-    -- Same for count of pending service entries
     SELECT COUNT(*) INTO v_pending_services
     FROM public.providers
     WHERE 
         status = 'pending' 
         OR moderation_status = 'pending'
-        OR (pending_updates IS NOT NULL AND status != 'rejected');
+        OR (pending_updates IS NOT NULL AND COALESCE(status, moderation_status) != 'rejected');
 
-    -- Wilaya distribution
     SELECT json_agg(t) INTO v_wilaya_dist
     FROM (
         SELECT 
@@ -118,7 +112,13 @@ BEGIN
 END;
 $$;
 
--- 5. Fix get_admin_moderation_list: add wilaya JOIN to include wilaya_name
+-- 5. Fix get_admin_moderation_list: safe version, only guaranteed core columns
+-- Core providers columns (from 20251231000000_core_schema.sql):
+--   id, user_id, commercial_name, provider_type, phone_number, social_link,
+--   moderation_status, created_at, updated_at
+-- Additional columns added by later safe migrations:
+--   wilaya_id (20260221000001), is_whatsapp_active, is_viber_active (20260303130000)
+--   status, rejection_reason, pending_updates (20260307160000)
 DROP FUNCTION IF EXISTS public.get_admin_moderation_list();
 CREATE OR REPLACE FUNCTION public.get_admin_moderation_list()
 RETURNS JSON
@@ -134,7 +134,7 @@ BEGIN
                 u.id as user_id,
                 u.display_name,
                 u.email,
-                -- Nested Profile (with wilaya_name)
+                -- Nested Profile object
                 (
                     SELECT json_build_object(
                         'id', u.id,
@@ -144,13 +144,14 @@ BEGIN
                         'rejection_reason', u.rejection_reason,
                         'pending_updates', u.pending_updates,
                         'created_at', u.created_at,
-                        'profile_picture_url', p_main.profile_picture_url,
+                        -- Core providers columns only
+                        'commercial_name', p_main.commercial_name,
+                        'provider_type', p_main.provider_type,
                         'phone_number', p_main.phone_number,
                         'social_link', p_main.social_link,
-                        'provider_type', p_main.provider_type,
+                        'moderation_status', p_main.moderation_status,
                         'is_whatsapp_active', p_main.is_whatsapp_active,
                         'is_viber_active', p_main.is_viber_active,
-                        'commercial_name', p_main.commercial_name,
                         'wilaya_id', p_main.wilaya_id,
                         'wilaya_name', w_main.name
                     )
@@ -159,7 +160,7 @@ BEGIN
                     WHERE p_main.user_id = u.user_id
                     LIMIT 1
                 ) as profile,
-                -- Nested Prestations with wilaya_name per prestation
+                -- Nested Prestations list
                 COALESCE(
                     (
                         SELECT json_agg(p_item)
@@ -167,20 +168,19 @@ BEGIN
                             SELECT 
                                 p.id,
                                 p.commercial_name,
-                                p.category_slug,
+                                p.provider_type,
                                 p.phone_number,
                                 p.social_link,
-                                p.profile_picture_url,
                                 p.is_whatsapp_active,
                                 p.is_viber_active,
                                 p.wilaya_id,
-                                p.base_price,
                                 w.name as wilaya_name,
                                 COALESCE(p.status, p.moderation_status, 'pending') as status,
+                                p.moderation_status,
                                 p.rejection_reason,
                                 p.pending_updates,
                                 p.created_at,
-                                -- Full Media Gallery
+                                -- Media Gallery
                                 COALESCE(
                                     (
                                         SELECT json_agg(m)
