@@ -15,7 +15,7 @@ export function AdminMobileBottomNav() {
 
     const navItems = [
         { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
-        { icon: Users, label: "Prestataires", path: "/admin/providers" },
+        { icon: Users, label: "Partenaires", path: "/admin/partners" },
         { icon: ShieldAlert, label: "Modération", path: "/admin/moderation" },
     ];
 

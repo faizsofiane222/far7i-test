@@ -15,7 +15,7 @@ import {
 
 const navigation = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Mes prestataires", href: "/admin/providers", icon: Users },
+    { name: "Gestion Partenaires", href: "/admin/partners", icon: Users },
     { name: "Modération", href: "/admin/moderation", icon: ShieldAlert },
     { name: "Blog", href: "/admin/blog", icon: FileText },
     { name: "Messagerie & Newsletter", href: "/admin/messaging", icon: MessageSquare },
