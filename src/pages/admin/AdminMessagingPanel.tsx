@@ -14,12 +14,13 @@ import {
     Calendar,
     ChevronRight,
     Filter,
-    Search as SearchIcon,
-    Eye,
-    History,
     Users2,
     Trash2,
-    Braces
+    Braces,
+    ArrowLeft,
+    ShieldCheck,
+    CheckCircle2,
+    AlertCircle
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,6 +65,7 @@ type Conversation = {
         user_id: string;
         full_name?: string;
         avatar_url?: string;
+        business_name?: string;
     }[];
 };
 
@@ -101,6 +103,13 @@ export default function AdminMessagingPanel() {
     const [estimatedAudience, setEstimatedAudience] = useState(0);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [loadingHistory, setLoadingHistory] = useState(false);
+
+    // New Conversation State
+    const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchingData, setSearchingData] = useState(false);
+    const [newChatInitialMessage, setNewChatInitialMessage] = useState("Bonjour, nous souhaiterions échanger avec vous concernant votre profil Far7i.");
 
     useEffect(() => {
         const init = async () => {
@@ -219,16 +228,88 @@ export default function AdminMessagingPanel() {
     };
 
     const fetchConversations = async () => {
-        const { data, error } = await supabase
-            .from('conversations')
-            .select('*')
-            .order('updated_at', { ascending: false });
+        try {
+            // Fetch conversations with participants and their simple profiles
+            const { data, error } = await supabase
+                .from('conversations')
+                .select(`
+                    *,
+                    conversation_participants(
+                        user_id,
+                        profiles:user_id(full_name, avatar_url)
+                    )
+                `)
+                .order('updated_at', { ascending: false });
 
-        if (error) {
+            if (error) throw error;
+
+            // Simple mapping to inject participant names if guest_name is missing
+            const mapped = (data || []).map((c: any) => {
+                if (!c.guest_name && c.conversation_participants) {
+                    // Find the other participant (not the admin)
+                    const other = c.conversation_participants.find((p: any) => p.user_id !== userId);
+                    if (other && other.profiles) {
+                        return { ...c, guest_name: other.profiles.full_name, avatar_url: other.profiles.avatar_url };
+                    }
+                }
+                return c;
+            });
+
+            setConversations(mapped);
+        } catch (error) {
+            console.error("Error fetching conversations:", error);
             toast.error("Erreur lors de la récupération des conversations");
+        }
+    };
+
+    const searchProviders = async (query: string) => {
+        if (!query.trim()) {
+            setSearchResults([]);
             return;
         }
-        setConversations(data || []);
+        setSearchingData(true);
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, full_name, avatar_url')
+                .ilike('full_name', `%${query}%`)
+                .limit(5);
+
+            if (error) throw error;
+            setSearchResults(data || []);
+        } catch (error) {
+            console.error("Search error:", error);
+        } finally {
+            setSearchingData(false);
+        }
+    };
+
+    const handleStartNewConversation = async (targetUserId: string) => {
+        if (!newChatInitialMessage.trim()) {
+            toast.error("Veuillez saisir un message initial");
+            return;
+        }
+
+        try {
+            setSending(true);
+            const { data, error } = await supabase.rpc('start_admin_conversation', {
+                p_target_user_id: targetUserId,
+                p_initial_message: newChatInitialMessage.trim()
+            });
+
+            if (error) throw error;
+
+            toast.success("Conversation initialisée");
+            setIsNewChatOpen(false);
+            setSearchQuery("");
+            setSearchResults([]);
+            await fetchConversations();
+            setActiveConvId(data); // Set the new conversation as active
+        } catch (error: any) {
+            toast.error("Erreur: " + error.message);
+        } finally {
+            setSending(false);
+        }
     };
 
     const fetchMessages = async (id: string) => {
@@ -419,126 +500,227 @@ export default function AdminMessagingPanel() {
                     </TabsList>
 
                     <TabsContent value="messages" className="mt-6 border-0 p-0">
-                        <div className="flex bg-white rounded-2xl border border-[#D4D2CF] overflow-hidden h-[70vh] shadow-sm animate-in fade-in duration-300">
-                            {/* Conversations Sidebar */}
-                            <div className="w-80 border-r border-[#D4D2CF] flex flex-col bg-[#F8F5F0]/50">
-                                <div className="p-4 border-b border-[#D4D2CF]/50 bg-white">
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <Input
-                                            placeholder="Rechercher..."
-                                            className="pl-9 h-10 text-sm bg-white border-[#D4D2CF] focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
-                                        />
+                        <div className="flex bg-[#F8F5F0] rounded-2xl border border-[#D4D2CF] shadow-sm overflow-hidden h-[calc(100vh-16rem)] relative">
+                            {/* Sidebar List */}
+                            <div className={cn(
+                                "w-full md:w-80 flex flex-col border-r border-[#D4D2CF] bg-[#F8F5F0]",
+                                activeConvId ? "hidden md:flex" : "flex"
+                            )}>
+                                <div className="p-4 border-b border-[#D4D2CF]/50 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="font-serif font-bold text-xl text-[#1E1E1E]">Messages</h2>
+                                        <Dialog open={isNewChatOpen} onOpenChange={setIsNewChatOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button size="icon" variant="ghost" className="text-[#B79A63] hover:bg-[#B79A63]/10">
+                                                    <Plus className="w-5 h-5" />
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[425px] bg-[#F8F5F0] border-[#D4D2CF]">
+                                                <DialogHeader>
+                                                    <DialogTitle className="font-serif text-2xl font-bold text-[#1E1E1E]">Contactez un Prestataire</DialogTitle>
+                                                    <DialogDescription>Recherchez un prestataire par son nom pour engager la conversation.</DialogDescription>
+                                                </DialogHeader>
+                                                <div className="space-y-4 py-4">
+                                                    <div className="relative">
+                                                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                        <Input
+                                                            placeholder="Rechercher par nom ou email..."
+                                                            value={searchQuery}
+                                                            onChange={(e) => {
+                                                                setSearchQuery(e.target.value);
+                                                                searchProviders(e.target.value);
+                                                            }}
+                                                            className="pl-9 h-11 bg-white border-[#D4D2CF] focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                                                        {searchingData ? (
+                                                            <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-[#B79A63]" /></div>
+                                                        ) : searchResults.length > 0 ? (
+                                                            searchResults.map(provider => (
+                                                                <button
+                                                                    key={provider.id}
+                                                                    onClick={() => handleStartNewConversation(provider.id)}
+                                                                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#EBE6DA] transition-colors text-left"
+                                                                >
+                                                                    <Avatar className="h-8 w-8">
+                                                                        <AvatarImage src={provider.avatar_url} />
+                                                                        <AvatarFallback>{provider.full_name?.[0]}</AvatarFallback>
+                                                                    </Avatar>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="font-bold text-sm truncate">{provider.full_name}</p>
+                                                                    </div>
+                                                                    <ChevronRight className="w-4 h-4 text-[#B79A63]" />
+                                                                </button>
+                                                            ))
+                                                        ) : searchQuery && (
+                                                            <p className="text-center text-xs text-slate-500 py-4">Aucun résultat trouvé.</p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-[#1E1E1E]">Message de bienvenue</label>
+                                                        <textarea
+                                                            value={newChatInitialMessage}
+                                                            onChange={(e) => setNewChatInitialMessage(e.target.value)}
+                                                            className="w-full p-3 rounded-xl border border-[#D4D2CF] bg-white text-sm focus:ring-[#B79A63]/50 focus:border-[#B79A63] outline-none min-h-[80px]"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
                                     </div>
                                 </div>
+
                                 <div className="flex-1 overflow-y-auto">
                                     {loading ? (
-                                        <div className="flex items-center justify-center p-8">
+                                        <div className="p-8 flex justify-center">
                                             <Loader2 className="w-6 h-6 animate-spin text-[#B79A63]" />
                                         </div>
                                     ) : conversations.length === 0 ? (
-                                        <div className="p-8 text-center text-slate-400 text-sm italic">
-                                            Aucune conversation
+                                        <div className="p-8 text-center space-y-3">
+                                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                                                <MessageSquare className="w-6 h-6" />
+                                            </div>
+                                            <p className="text-sm text-slate-500 font-serif">Aucune conversation.</p>
                                         </div>
                                     ) : (
-                                        conversations.map(conv => (
-                                            <button
-                                                key={conv.id}
-                                                onClick={() => setActiveConvId(conv.id)}
-                                                className={cn(
-                                                    "w-full p-4 flex items-start gap-4 transition-all text-left border-b border-[#D4D2CF]/30",
-                                                    activeConvId === conv.id ? "bg-[#1E1E1E] text-white" : "hover:bg-[#EBE6DA]/50"
-                                                )}
-                                            >
-                                                <Avatar className="w-10 h-10 border border-[#D4D2CF]">
-                                                    <AvatarFallback className={cn("text-xs font-bold", activeConvId === conv.id ? "bg-[#B79A63] text-white" : "bg-[#1E1E1E] text-[#B79A63]")}>
-                                                        {conv.guest_name?.[0] || conv.type[0].toUpperCase()}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between mb-0.5">
-                                                        <span className="font-bold text-sm truncate">
-                                                            {conv.guest_name || (conv.type === 'support' ? 'Support Ticket' : 'Utilisateur')}
-                                                        </span>
-                                                        <span className={cn("text-[10px]", activeConvId === conv.id ? "text-slate-400" : "text-slate-500")}>
-                                                            {new Date(conv.updated_at).toLocaleDateString()}
-                                                        </span>
+                                        <div className="divide-y divide-slate-100">
+                                            {conversations.map(conv => (
+                                                <button
+                                                    key={conv.id}
+                                                    onClick={() => setActiveConvId(conv.id)}
+                                                    className={cn(
+                                                        "w-full p-4 flex items-start gap-4 hover:bg-[#EBE6DA]/50 transition-colors text-left border-b border-[#D4D2CF] last:border-0 group relative",
+                                                        activeConvId === conv.id ? "bg-[#EBE6DA] border-l-4 border-l-[#B79A63]" : "pl-4 border-l-4 border-l-transparent"
+                                                    )}
+                                                >
+                                                    <Avatar className="w-10 h-10 border border-[#D4D2CF]">
+                                                        <AvatarFallback className={cn("text-xs font-bold", conv.type === 'support' ? "bg-[#1E1E1E] text-[#B79A63]" : "bg-slate-100 text-[#1E1E1E]")}>
+                                                            {conv.guest_name?.[0] || 'U'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="font-bold text-sm text-[#1E1E1E] truncate">
+                                                                {conv.guest_name || 'Utilisateur'}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-400">{new Date(conv.updated_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge variant="outline" className="text-[9px] h-4 px-1 uppercase tracking-tighter opacity-60">
+                                                                {conv.type}
+                                                            </Badge>
+                                                            {conv.status === 'open' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <p className={cn("text-[10px] uppercase font-bold tracking-tighter opacity-70", activeConvId === conv.id ? "text-slate-300" : "text-slate-500")}>
-                                                            {conv.type}
-                                                        </p>
-                                                        <div className={cn("w-1 h-1 rounded-full", conv.status === 'open' ? "bg-emerald-500" : "bg-slate-400")} />
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))
+                                                </button>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Chat Window */}
-                            <div className="flex-1 flex flex-col bg-white">
+                            {/* Chat Area */}
+                            <div className={cn(
+                                "flex-1 flex flex-col bg-white",
+                                !activeConvId ? "hidden md:flex" : "flex"
+                            )}>
                                 {activeConvId ? (
                                     <>
-                                        <div className="h-16 border-b border-[#D4D2CF] flex items-center justify-between px-6 bg-[#F8F5F0]">
+                                        {/* Chat Header */}
+                                        <div className="h-16 border-b border-[#D4D2CF] flex items-center justify-between px-6 flex-shrink-0 bg-[#F8F5F0]">
                                             <div className="flex items-center gap-3">
-                                                <h3 className="font-serif font-bold text-[#1E1E1E]">
-                                                    {conversations.find(c => c.id === activeConvId)?.guest_name || "Conversation"}
-                                                </h3>
-                                                <div className="h-4 w-[1px] bg-[#D4D2CF]" />
-                                                <span className="text-[10px] bg-[#B79A63]/20 text-[#B79A63] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
-                                                    {conversations.find(c => c.id === activeConvId)?.type}
-                                                </span>
+                                                <button
+                                                    onClick={() => setActiveConvId(null)}
+                                                    className="md:hidden p-2 -ml-2 text-slate-500"
+                                                >
+                                                    <ArrowLeft className="w-5 h-5" />
+                                                </button>
+                                                <Avatar className="w-8 h-8">
+                                                    <AvatarFallback className="text-xs font-bold bg-[#1E1E1E] text-[#B79A63]">
+                                                        {conversations.find(c => c.id === activeConvId)?.guest_name?.[0] || 'U'}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <h3 className="font-serif font-bold text-[#1E1E1E]">
+                                                        {conversations.find(c => c.id === activeConvId)?.guest_name || 'Conversation'}
+                                                    </h3>
+                                                    <span className="text-[10px] uppercase font-bold tracking-widest text-[#B79A63] flex items-center gap-1">
+                                                        {conversations.find(c => c.id === activeConvId)?.type}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {/* Trash icon for closing/deleting could go here */}
                                             </div>
                                         </div>
-                                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#FAF9F6]/30">
+
+                                        {/* Messages List */}
+                                        <div
+                                            ref={scrollRef}
+                                            className="flex-1 overflow-y-auto p-6 space-y-6 bg-white"
+                                        >
                                             {messages.length === 0 ? (
-                                                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 opacity-50 italic">
-                                                    <p>Début de la conversation</p>
+                                                <div className="text-center py-10 opacity-50">
+                                                    <p className="font-serif text-lg text-[#1E1E1E]">Début de la conversation</p>
                                                 </div>
                                             ) : (
-                                                messages.map(msg => (
-                                                    <div key={msg.id} className={cn("flex w-full", msg.sender_id === userId ? "justify-end" : "justify-start")}>
+                                                messages.map((msg) => (
+                                                    <div
+                                                        key={msg.id}
+                                                        className={cn(
+                                                            "flex w-full",
+                                                            msg.sender_id === userId ? "justify-end" : "justify-start"
+                                                        )}
+                                                    >
                                                         <div className={cn(
-                                                            "max-w-[70%] rounded-2xl p-4 text-sm font-lato shadow-sm transition-all animate-in fade-in zoom-in-95 duration-200",
+                                                            "max-w-[75%] rounded-2xl p-4 text-sm font-lato shadow-sm transition-all animate-in fade-in zoom-in-95 duration-200",
                                                             msg.sender_id === userId
                                                                 ? "bg-[#1E1E1E] text-white rounded-tr-none"
                                                                 : "bg-white text-[#1E1E1E] rounded-tl-none border border-[#D4D2CF]/50"
                                                         )}>
                                                             <p className="leading-relaxed">{msg.content}</p>
-                                                            <span className="text-[9px] opacity-50 block mt-1 text-right italic font-sans font-normal">
+                                                            <div className={cn(
+                                                                "text-[10px] mt-1 text-right opacity-50",
+                                                                msg.sender_id === userId ? "text-white" : "text-black"
+                                                            )}>
                                                                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))
                                             )}
                                         </div>
-                                        <form onSubmit={handleSendMessage} className="p-4 border-t border-[#D4D2CF]/30 flex gap-3 bg-white">
-                                            <Input
-                                                value={newMessage}
-                                                onChange={(e) => setNewMessage(e.target.value)}
-                                                placeholder="Écrivez votre réponse..."
-                                                className="flex-1 rounded-xl h-12 border-[#D4D2CF] focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
-                                            />
-                                            <Button
-                                                type="submit"
-                                                disabled={!newMessage.trim() || sending}
-                                                className="bg-[#B79A63] hover:bg-[#A68952] text-white px-6 h-12 rounded-xl transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#B79A63]/20"
-                                            >
-                                                {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                                            </Button>
-                                        </form>
+
+                                        {/* Input Area */}
+                                        <div className="p-4 border-t border-[#F8F5F0] bg-white">
+                                            <form onSubmit={handleSendMessage} className="flex gap-3">
+                                                <Input
+                                                    value={newMessage}
+                                                    onChange={(e) => setNewMessage(e.target.value)}
+                                                    placeholder="Répondre..."
+                                                    className="flex-1 rounded-full border border-[#D4D2CF] bg-white focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    disabled={!newMessage.trim() || sending}
+                                                    className="w-10 h-10 rounded-full bg-[#B79A63] text-white flex items-center justify-center hover:bg-[#A68952] disabled:opacity-50 transition-all shadow-md transform hover:scale-105"
+                                                >
+                                                    {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-0.5" />}
+                                                </button>
+                                            </form>
+                                        </div>
                                     </>
                                 ) : (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-400 bg-[#FAF9F6]/10">
-                                        <div className="w-20 h-20 bg-[#F8F5F0] rounded-full flex items-center justify-center mb-6 shadow-sm border border-[#D4D2CF]/50">
-                                            <MessageSquare className="w-10 h-10 opacity-20 text-[#B79A63]" />
+                                    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-400 space-y-4">
+                                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
+                                            <MessageSquare className="w-10 h-10 opacity-20" />
                                         </div>
-                                        <h3 className="font-serif text-2xl font-bold text-[#1E1E1E]">Centre de Messagerie</h3>
-                                        <p className="max-w-xs mx-auto text-sm mt-3 leading-relaxed">
-                                            Sélectionnez une conversation dans la liste à gauche pour voir les échanges et répondre aux utilisateurs.
+                                        <h3 className="font-serif text-xl font-bold text-[#1E1E1E]">Messagerie</h3>
+                                        <p className="max-w-xs mx-auto text-sm text-slate-500">
+                                            Sélectionnez une conversation ou utilisez le bouton "+" pour contacter un prestataire inscrit.
                                         </p>
                                     </div>
                                 )}
