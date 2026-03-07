@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import {
     MessageSquare,
     Mail,
-    Search,
+    Search as SearchIcon,
     Send,
     Plus,
     Loader2,
