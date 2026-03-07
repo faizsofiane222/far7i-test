@@ -48,6 +48,7 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminProviders from "@/pages/admin/AdminProviders";
+import AdminPartners from "@/pages/admin/AdminPartners";
 import AdminModeration from "@/pages/admin/AdminModeration";
 import AdminProviderEditor from "@/pages/admin/AdminProviderEditor";
 import AdminServicesManager from "@/pages/admin/AdminServicesManager";
@@ -137,6 +138,7 @@ const App = () => (
                 {/* Admin Routes */}
                 <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="/admin/providers" element={<AdminRoute><AdminProviders /></AdminRoute>} />
+                <Route path="/admin/partners" element={<AdminRoute><AdminPartners /></AdminRoute>} />
                 <Route path="/admin/providers/new" element={<AdminRoute><AdminProviderEditor /></AdminRoute>} />
                 <Route path="/admin/providers/:id" element={<AdminRoute><AdminProviderEditor /></AdminRoute>} />
                 <Route path="/admin/providers/:id/services" element={<AdminRoute><AdminServicesManager /></AdminRoute>} />
