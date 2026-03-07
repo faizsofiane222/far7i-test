@@ -7,15 +7,13 @@ DROP FUNCTION IF EXISTS public.get_unread_messages_count();
 DROP FUNCTION IF EXISTS public.get_unread_notifications_count();
 DROP FUNCTION IF EXISTS public.get_pending_moderation_count();
 
--- 1. Check if user is admin (Keeping Existing Type 'boolean')
--- We use OR REPLACE to update logic without dropping
+-- 1. Check if user is admin (using user_roles table, NOT profiles which doesn't exist)
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean AS $$
 BEGIN
-    RETURN (auth.jwt() ->> 'role' = 'admin') 
-    OR EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE id = auth.uid() AND (role = 'admin' OR (is_admin = true))
+    RETURN EXISTS (
+        SELECT 1 FROM public.user_roles 
+        WHERE user_id = auth.uid() AND role = 'admin'
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

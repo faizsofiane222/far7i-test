@@ -80,9 +80,13 @@ export default function AdminPartners() {
     };
 
     const filteredPartners = partners.filter(p =>
-        p.display_name?.toLowerCase().includes(search.toLowerCase()) ||
-        p.email?.toLowerCase().includes(search.toLowerCase()) ||
-        p.prestations.some(pr => pr.commercial_name?.toLowerCase().includes(search.toLowerCase()))
+        // Only show partners who have a provider profile
+        p.profile != null &&
+        (
+            p.display_name?.toLowerCase().includes(search.toLowerCase()) ||
+            p.email?.toLowerCase().includes(search.toLowerCase()) ||
+            p.prestations?.some((pr: any) => pr.commercial_name?.toLowerCase().includes(search.toLowerCase()))
+        )
     );
 
     return (
@@ -138,8 +142,8 @@ export default function AdminPartners() {
                                 <tbody className="divide-y divide-[#D4D2CF]">
                                     {filteredPartners.map((partner) => {
                                         const isExpanded = expandedRows[partner.user_id];
-                                        const pendingCount = (partner.profile.status === 'pending' ? 1 : 0) +
-                                            partner.prestations.filter(p => p.status === 'pending').length;
+                                        const pendingCount = (partner.profile?.status === 'pending' ? 1 : 0) +
+                                            (partner.prestations?.filter((p: any) => p.status === 'pending').length ?? 0);
 
                                         return (
                                             <>
