@@ -97,13 +97,19 @@ export default function PartnerAuth() {
 
         try {
             if (mode === "login") {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data: signInData, error } = await supabase.auth.signInWithPassword({
                     email: values.email,
                     password: values.password!,
                 });
                 if (error) throw error;
                 toast.success("Connexion réussie !");
-                navigate("/partner/dashboard");
+                // Route based on actual role (admin → /admin/dashboard, others → /partner/dashboard)
+                if (signInData.user) {
+                    const route = await getDashboardRoute(signInData.user);
+                    navigate(route);
+                } else {
+                    navigate("/partner/dashboard");
+                }
             }
             else if (mode === "signup") {
                 const displayName = values.businessName;
