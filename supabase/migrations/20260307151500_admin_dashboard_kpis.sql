@@ -47,9 +47,9 @@ DECLARE
     v_wilaya_dist JSON;
 BEGIN
     -- Acquisition: Total Partners (Users with role provider)
-    SELECT COUNT(DISTINCT id) INTO v_total_providers
-    FROM public.users
-    WHERE role = 'provider';
+    SELECT COUNT(DISTINCT ur.user_id) INTO v_total_providers
+    FROM public.user_roles ur
+    WHERE ur.role = 'provider';
 
     -- Acquisition: Total Services (Entries in providers table)
     SELECT COUNT(*) INTO v_total_services
@@ -98,7 +98,10 @@ CREATE POLICY "Anyone can insert page views" ON public.page_views
 -- Allow admins to view
 CREATE POLICY "Admins can view page views" ON public.page_views
     FOR SELECT TO authenticated
-    USING (EXists (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'));
+    USING (EXISTS (
+        SELECT 1 FROM public.user_roles 
+        WHERE user_id = auth.uid() AND role = 'admin'
+    ));
 
 -- Grant access to RPCs
 GRANT EXECUTE ON FUNCTION public.get_visitor_stats(TIMESTAMPTZ, TIMESTAMPTZ) TO authenticated;
