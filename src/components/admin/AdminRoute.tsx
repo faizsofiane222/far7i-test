@@ -15,15 +15,24 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            const { data, error } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', user.id)
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', user.id)
+                    .eq('role', 'admin')
+                    .maybeSingle();
 
-            if (data?.role === 'admin') {
-                setIsAdmin(true);
-            } else {
+                if (error) {
+                    console.error('Error checking admin role:', error);
+                    setIsAdmin(false);
+                    return;
+                }
+
+                // data will be non-null only if the user has role='admin'
+                setIsAdmin(data !== null);
+            } catch (e) {
+                console.error('Exception checking admin role:', e);
                 setIsAdmin(false);
             }
         };
