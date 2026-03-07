@@ -1,9 +1,9 @@
 import React from "react";
 import {
-    X, Check, AlertCircle, Trash2, ExternalLink,
+    X, Check, AlertCircle, Trash2,
     Instagram, Facebook, Globe, Phone, MapPin,
-    Calendar, User, Briefcase, Camera, MessageSquare, Info,
-    Tag, ShieldCheck
+    Calendar, User, Briefcase, Camera, Info,
+    Tag, ShieldCheck, Mail
 } from "lucide-react";
 import {
     Sheet,
@@ -83,20 +83,23 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
         }
     };
 
-    // Helper to determine if a field is modified
     const isFieldModified = (key: string) => {
         if (!isModification || !pendingUpdates) return false;
         const oldVal = item[key];
         const newVal = pendingUpdates[key];
 
-        // Deep compare for simple values
+        if (oldVal === newVal) return false;
+        if (!oldVal && !newVal) return false;
+
         if (typeof oldVal !== typeof newVal) return true;
         if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) return true;
-        return false;
+        return true;
     };
 
-    const RenderField = ({ label, icon: Icon, value, updatedValue, fieldKey, isLongText = false }: any) => {
+    const RenderField = ({ label, icon: Icon, value, updatedValue, fieldKey, isLongText = false, customValue }: any) => {
         const modified = isModification && isFieldModified(fieldKey);
+        const displayValue = customValue || value;
+        const displayUpdatedValue = updatedValue;
 
         return (
             <div className={cn(
@@ -112,28 +115,26 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Colonne Gauche: Actuel (si modification) ou Seule (si nouveau) */}
                     <div className={cn(!isModification ? "md:col-span-2" : "")}>
                         {!isModification ? (
                             <div className={cn("text-slate-800", isLongText ? "whitespace-pre-wrap leading-relaxed" : "font-medium")}>
-                                {value || <span className="text-slate-300 italic">Non renseigné</span>}
+                                {displayValue || <span className="text-slate-300 italic">Non renseigné</span>}
                             </div>
                         ) : (
                             <div className="space-y-1">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase">Version Actuelle</span>
                                 <div className={cn("text-slate-500 line-through opacity-60", isLongText ? "whitespace-pre-wrap text-sm" : "font-medium")}>
-                                    {value || "Vide"}
+                                    {displayValue || "Vide"}
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Colonne Droite: Nouveau (uniquement si modification) */}
                     {isModification && (
                         <div className="space-y-1 border-l border-amber-100 pl-8">
                             <span className="text-[10px] font-bold text-amber-600 uppercase">Nouvelle Version</span>
                             <div className={cn("text-slate-900", isLongText ? "whitespace-pre-wrap leading-relaxed" : "font-bold text-lg")}>
-                                {updatedValue || <span className="text-slate-300 italic">Supprimé</span>}
+                                {displayUpdatedValue || <span className="text-slate-300 italic">Supprimé</span>}
                             </div>
                         </div>
                     )}
@@ -159,7 +160,6 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    {/* Galerie Actuelle */}
                     {isModification && (
                         <div className="space-y-4">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Actuelle ({currentGallery.length})</p>
@@ -174,7 +174,6 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                         </div>
                     )}
 
-                    {/* Galerie Nouvelle / Seule */}
                     <div className={cn("space-y-4", !isModification ? "md:col-span-2" : "border-l border-amber-100 pl-12")}>
                         <p className="text-xs font-bold text-amber-600 uppercase tracking-widest">
                             {isModification ? "Nouvelle Sélection" : "Photos soumises"} ({updatedGallery.length})
@@ -200,7 +199,6 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
             <SheetContent side="right" className="w-[90%] sm:max-w-[90%] p-0 bg-[#F8F5F0] border-l-0">
                 <div className="flex flex-col h-full relative font-lato">
 
-                    {/* Header Sticky */}
                     <div className="sticky top-0 z-50 bg-[#1E1E1E] text-white p-6 shadow-xl flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-[#B79A63]/20 rounded-2xl">
@@ -211,7 +209,7 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                                     Révision : {item.commercial_name || item.display_name}
                                 </SheetTitle>
                                 <SheetDescription className="text-slate-400 capitalize">
-                                    {type} • {isNewCreation ? "Nouvelle Inscription" : "Mise à jour de données"}
+                                    {type === 'profile' ? 'Profil Partenaire' : 'Détails de la Prestation'} • {isNewCreation ? "Nouvelle Inscription" : "Mise à jour de données"}
                                 </SheetDescription>
                             </div>
                         </div>
@@ -220,59 +218,67 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                         </button>
                     </div>
 
-                    {/* Area de scroll */}
                     <div className="flex-1 overflow-y-auto p-4 md:p-12 pb-48">
                         <div className="max-w-6xl mx-auto space-y-12">
 
-                            {/* Section Identité */}
                             <section>
                                 <div className="flex items-center gap-3 mb-6">
                                     <ShieldCheck className="w-5 h-5 text-[#B79A63]" />
                                     <h3 className="font-serif font-bold text-2xl text-slate-800">Informations Clés</h3>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4">
+                                    {/* Profil & Prestation share these for now, but we filter based on type */}
                                     <RenderField
-                                        label="Nom / Enseigne"
+                                        label={type === 'profile' ? "Nom Commercial" : "Titre de la Prestation"}
                                         icon={Briefcase}
                                         fieldKey="commercial_name"
                                         value={item.commercial_name || item.display_name}
                                         updatedValue={pendingUpdates?.commercial_name}
                                     />
-                                    <RenderField
-                                        label="Bio / Description"
-                                        icon={Info}
-                                        fieldKey="bio"
-                                        isLongText
-                                        value={item.bio}
-                                        updatedValue={pendingUpdates?.bio}
-                                    />
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                                    {type === 'prestation' && (
                                         <RenderField
-                                            label="Prix de base"
-                                            icon={Tag}
-                                            fieldKey="base_price"
-                                            value={item.base_price ? `${item.base_price} DZD` : null}
-                                            updatedValue={pendingUpdates?.base_price ? `${pendingUpdates.base_price} DZD` : null}
+                                            label="Description de la Prestation"
+                                            icon={Info}
+                                            fieldKey="bio"
+                                            isLongText
+                                            value={item.bio}
+                                            updatedValue={pendingUpdates?.bio}
                                         />
+                                    )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {type === 'profile' && (
+                                            <RenderField
+                                                label="Type de Prestataire"
+                                                icon={User}
+                                                fieldKey="provider_type"
+                                                value={item.provider_type === 'agency' ? 'Agence / Équipe' : 'Indépendant / Freelance'}
+                                                updatedValue={pendingUpdates?.provider_type === 'agency' ? 'Agence / Équipe' : (pendingUpdates?.provider_type === 'solo' ? 'Indépendant / Freelance' : null)}
+                                            />
+                                        )}
+
+                                        {type === 'prestation' && (
+                                            <RenderField
+                                                label="Prix de base (DA)"
+                                                icon={Tag}
+                                                fieldKey="base_price"
+                                                value={item.base_price ? `${item.base_price} DA` : null}
+                                                updatedValue={pendingUpdates?.base_price ? `${pendingUpdates.base_price} DA` : null}
+                                            />
+                                        )}
+
                                         <RenderField
-                                            label="Type"
-                                            icon={User}
-                                            fieldKey="provider_type"
-                                            value={item.provider_type}
-                                            updatedValue={pendingUpdates?.provider_type}
-                                        />
-                                        <RenderField
-                                            label="Expérience"
-                                            icon={Calendar}
-                                            fieldKey="years_of_experience"
-                                            value={item.years_of_experience ? `${item.years_of_experience} ans` : null}
-                                            updatedValue={pendingUpdates?.years_of_experience ? `${pendingUpdates.years_of_experience} ans` : null}
+                                            label="Wilaya"
+                                            icon={MapPin}
+                                            fieldKey="wilaya_id"
+                                            value={item.wilaya_name || item.wilaya_id}
+                                            updatedValue={pendingUpdates?.wilaya_name || pendingUpdates?.wilaya_id}
                                         />
                                     </div>
                                 </div>
                             </section>
 
-                            {/* Section Meedias (Exclusivement pour les prestations) */}
                             {type === 'prestation' && (
                                 <GallerySection
                                     currentGallery={item.gallery || []}
@@ -280,33 +286,59 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                                 />
                             )}
 
-                            {/* Section Contact & Social */}
                             <section>
                                 <div className="flex items-center gap-3 mb-6">
                                     <Phone className="w-5 h-5 text-[#B79A63]" />
                                     <h3 className="font-serif font-bold text-2xl text-slate-800">Contact & Réseaux</h3>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <RenderField
-                                        label="Téléphone"
-                                        icon={Phone}
-                                        fieldKey="phone_number"
-                                        value={item.phone_number}
-                                        updatedValue={pendingUpdates?.phone_number}
-                                    />
-                                    <RenderField
-                                        label="Instagram / Social"
-                                        icon={Instagram}
-                                        fieldKey="social_link"
-                                        value={item.social_link}
-                                        updatedValue={pendingUpdates?.social_link}
-                                    />
+                                    <div className="space-y-4">
+                                        <RenderField
+                                            label="Téléphone"
+                                            icon={Phone}
+                                            fieldKey="phone_number"
+                                            value={item.phone_number}
+                                            updatedValue={pendingUpdates?.phone_number}
+                                        />
+                                        <div className="flex gap-4">
+                                            <div className={cn(
+                                                "flex-1 p-3 rounded-xl border flex items-center gap-2",
+                                                (isModification && isFieldModified('is_whatsapp_active')) ? "bg-amber-50 border-amber-200" : "bg-white border-slate-100"
+                                            )}>
+                                                <div className={cn("w-2 h-2 rounded-full", (pendingUpdates?.is_whatsapp_active ?? item.is_whatsapp_active) ? "bg-emerald-500" : "bg-slate-300")} />
+                                                <span className="text-xs font-bold text-slate-600">WhatsApp</span>
+                                            </div>
+                                            <div className={cn(
+                                                "flex-1 p-3 rounded-xl border flex items-center gap-2",
+                                                (isModification && isFieldModified('is_viber_active')) ? "bg-amber-50 border-amber-200" : "bg-white border-slate-100"
+                                            )}>
+                                                <div className={cn("w-2 h-2 rounded-full", (pendingUpdates?.is_viber_active ?? item.is_viber_active) ? "bg-purple-500" : "bg-slate-300")} />
+                                                <span className="text-xs font-bold text-slate-600">Viber</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <RenderField
+                                            label="Email"
+                                            icon={Mail}
+                                            fieldKey="email"
+                                            value={item.email}
+                                            updatedValue={pendingUpdates?.email}
+                                        />
+                                        <RenderField
+                                            label="Réseaux Sociaux / Site"
+                                            icon={Globe}
+                                            fieldKey="social_link"
+                                            value={item.social_link || item.website_link}
+                                            updatedValue={pendingUpdates?.social_link || pendingUpdates?.website_link}
+                                        />
+                                    </div>
                                 </div>
                             </section>
                         </div>
                     </div>
 
-                    {/* Footer Sticky - Action Bar */}
                     <div className="fixed bottom-0 left-[10%] right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex items-center justify-between z-[60]">
                         <div className="flex items-center gap-6">
                             <UnifiedButton
