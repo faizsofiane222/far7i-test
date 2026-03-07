@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "generate:sitemap": "tsx scripts/generate-sitemap.ts",
     "fix:signup": "tsx scripts/apply-signup-fix.ts",
+    "fix:dashboard": "tsx scripts/apply-dashboard-fix.ts",
     "prebuild": "npm run generate:sitemap",
     "security:audit": "npm audit --audit-level=moderate",
     "security:fix": "npm audit fix",
