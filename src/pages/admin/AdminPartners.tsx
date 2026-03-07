@@ -80,13 +80,9 @@ export default function AdminPartners() {
     };
 
     const filteredPartners = partners.filter(p =>
-        // Only show partners who have a provider profile
-        p.profile != null &&
-        (
-            p.display_name?.toLowerCase().includes(search.toLowerCase()) ||
-            p.email?.toLowerCase().includes(search.toLowerCase()) ||
-            p.prestations?.some((pr: any) => pr.commercial_name?.toLowerCase().includes(search.toLowerCase()))
-        )
+        p.display_name?.toLowerCase().includes(search.toLowerCase()) ||
+        p.email?.toLowerCase().includes(search.toLowerCase()) ||
+        p.prestations?.some((pr: any) => pr.commercial_name?.toLowerCase().includes(search.toLowerCase()))
     );
 
     return (
