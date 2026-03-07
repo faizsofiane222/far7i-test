@@ -185,10 +185,9 @@ BEGIN
                                     (
                                         SELECT json_agg(m)
                                         FROM (
-                                            SELECT media_url, is_main, sort_order
+                                            SELECT media_url, is_main
                                             FROM public.provider_media
                                             WHERE provider_id = p.id
-                                            ORDER BY sort_order ASC
                                         ) m
                                     ), '[]'::json
                                 ) as gallery,
