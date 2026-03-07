@@ -1,54 +1,55 @@
 -- Migration to add essential messaging and notification utility RPCs
 -- These are called by useNotifications hook and other UI components
 
--- DROP EXISTING TO AVOID RETURN TYPE CONFLICTS
-DROP FUNCTION IF EXISTS public.is_admin();
+-- ONLY DROP count functions if we really need to change return type, 
+-- but better to match existing 'integer' to avoid complex dependency issues.
 DROP FUNCTION IF EXISTS public.get_unread_messages_count();
 DROP FUNCTION IF EXISTS public.get_unread_notifications_count();
 DROP FUNCTION IF EXISTS public.get_pending_moderation_count();
-DROP FUNCTION IF EXISTS public.mark_notification_read(UUID);
-DROP FUNCTION IF EXISTS public.mark_all_notifications_read();
-DROP FUNCTION IF EXISTS public.mark_conversation_read(UUID);
 
--- 1. Check if user is admin
+-- 1. Check if user is admin (Keeping Existing Type 'boolean')
+-- We use OR REPLACE to update logic without dropping
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS boolean AS $$
 BEGIN
     RETURN (auth.jwt() ->> 'role' = 'admin') 
     OR EXISTS (
         SELECT 1 FROM public.profiles 
-        WHERE id = auth.uid() AND role = 'admin'
+        WHERE id = auth.uid() AND (role = 'admin' OR (is_admin = true))
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Unread messages count for current user
+-- 2. Unread messages count for current user (Using INTEGER to match potential existing type)
 CREATE OR REPLACE FUNCTION public.get_unread_messages_count()
-RETURNS bigint AS $$
+RETURNS integer AS $$
+DECLARE
+    v_count integer;
 BEGIN
-    RETURN (
-        SELECT count(*)
-        FROM public.messages m
-        JOIN public.conversation_participants cp ON m.conversation_id = cp.conversation_id
-        WHERE cp.user_id = auth.uid()
-        AND m.sender_id != auth.uid()
-        AND (m.read_at IS NULL OR m.read_at < cp.last_read_at)
-    );
+    SELECT count(*)::integer INTO v_count
+    FROM public.messages m
+    JOIN public.conversation_participants cp ON m.conversation_id = cp.conversation_id
+    WHERE cp.user_id = auth.uid()
+    AND m.sender_id != auth.uid()
+    AND (m.read_at IS NULL OR m.read_at < cp.last_read_at);
+    
+    RETURN coalesce(v_count, 0);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. Unread notifications count
 CREATE OR REPLACE FUNCTION public.get_unread_notifications_count()
-RETURNS bigint AS $$
+RETURNS integer AS $$
+DECLARE
+    v_count integer;
 BEGIN
     -- Check if notifications table exists first to avoid error if missing
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notifications') THEN
-        RETURN (
-            SELECT count(*)
-            FROM public.notifications
-            WHERE user_id = auth.uid()
-            AND read_at IS NULL
-        );
+        SELECT count(*)::integer INTO v_count
+        FROM public.notifications
+        WHERE user_id = auth.uid()
+        AND read_at IS NULL;
+        RETURN coalesce(v_count, 0);
     ELSE
         RETURN 0;
     END IF;
@@ -57,22 +58,21 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 4. Pending moderation count (Admin only)
 CREATE OR REPLACE FUNCTION public.get_pending_moderation_count()
-RETURNS bigint AS $$
+RETURNS integer AS $$
 DECLARE
-    v_count bigint := 0;
-    v_providers bigint := 0;
-    v_reviews bigint := 0;
+    v_providers integer := 0;
+    v_reviews integer := 0;
 BEGIN
     IF NOT public.is_admin() THEN
         RETURN 0;
     END IF;
 
     -- Count pending providers
-    SELECT count(*) INTO v_providers FROM public.providers WHERE moderation_status = 'pending';
+    SELECT count(*)::integer INTO v_providers FROM public.providers WHERE moderation_status = 'pending';
     
     -- Count pending reviews if table exists
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reviews') THEN
-        SELECT count(*) INTO v_reviews FROM public.reviews WHERE moderation_status = 'pending';
+        SELECT count(*)::integer INTO v_reviews FROM public.reviews WHERE moderation_status = 'pending';
     END IF;
 
     RETURN v_providers + v_reviews;
@@ -109,7 +109,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Grant access to authenticated users
+-- Grant access to authenticated users (Resolves 400 errors)
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_unread_messages_count() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_unread_notifications_count() TO authenticated;
