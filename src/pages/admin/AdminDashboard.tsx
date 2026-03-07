@@ -12,7 +12,9 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Cell
+    Cell,
+    AreaChart,
+    Area,
 } from "recharts";
 import {
     Select,
@@ -31,10 +33,22 @@ interface AdminKPIs {
     wilaya_distribution: { wilaya: string; count: number }[];
 }
 
+interface VisitorPoint {
+    day: string;
+    unique_visitors: number;
+    page_views: number;
+}
+
+const formatDay = (day: string) => {
+    const d = new Date(day);
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+};
+
 export default function AdminDashboard() {
     const { user } = useAuth();
     const [kpis, setKpis] = useState<AdminKPIs | null>(null);
     const [visitorCount, setVisitorCount] = useState<number>(0);
+    const [visitorEvolution, setVisitorEvolution] = useState<VisitorPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState("7"); // Days
 
@@ -49,7 +63,7 @@ export default function AdminDashboard() {
                 if (kpiError) throw kpiError;
                 setKpis(kpiData as AdminKPIs);
 
-                // 2. Fetch Visitor Stats based on date range
+                // 2. Fetch Visitor Stats + Evolution
                 await fetchVisitors(dateRange);
 
             } catch (error: any) {
@@ -67,20 +81,34 @@ export default function AdminDashboard() {
         const endDate = new Date().toISOString();
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - parseInt(days));
+        const startISO = startDate.toISOString();
 
-        const { data, error } = await (supabase as any).rpc('get_visitor_stats', {
-            p_start_date: startDate.toISOString(),
+        // Total unique visitors
+        const { data: total } = await (supabase as any).rpc('get_visitor_stats', {
+            p_start_date: startISO,
             p_end_date: endDate
         });
+        if (total !== undefined) setVisitorCount(total as number || 0);
 
-        if (!error) setVisitorCount(data as number || 0);
+        // Time series for chart
+        const { data: evolution } = await (supabase as any).rpc('get_visitor_evolution', {
+            p_start_date: startISO,
+            p_end_date: endDate
+        });
+        if (evolution) {
+            setVisitorEvolution((evolution as any[]).map(row => ({
+                day: formatDay(row.day),
+                unique_visitors: Number(row.unique_visitors),
+                page_views: Number(row.page_views)
+            })));
+        }
     };
 
     const statCards = [
         {
             label: "Validations en attente",
             value: kpis?.pending_services ?? 0,
-            subLabel: `${kpis?.pending_providers ?? 0} prestataires`,
+            subLabel: `${kpis?.pending_providers ?? 0} prestataires à valider`,
             icon: ShieldAlert,
             highlight: (kpis?.pending_services ?? 0) > 0,
             primary: true,
@@ -108,9 +136,9 @@ export default function AdminDashboard() {
             bgColor: "bg-emerald-50"
         },
         {
-            label: "Trafic Visiteurs",
+            label: "Visiteurs Uniques",
             value: visitorCount,
-            subLabel: `Derniers ${dateRange} jours`,
+            subLabel: `Derniers ${dateRange} jour${parseInt(dateRange) > 1 ? 's' : ''}`,
             icon: MousePointerClick,
             highlight: false,
             primary: false,
@@ -199,12 +227,86 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
 
-                            {/* Decorative background element */}
                             <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
                                 <stat.icon className="w-32 h-32" />
                             </div>
                         </div>
                     ))}
+                </div>
+
+                {/* Visitor Evolution Chart */}
+                <div className="bg-white p-8 rounded-3xl border border-[#D4D2CF]/50 shadow-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2.5 bg-[#F8F5F0] text-[#B79A63] rounded-xl">
+                            <TrendingUp className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="font-serif text-xl font-bold text-[#1E1E1E]">Évolution du Trafic</h2>
+                            <p className="text-xs text-[#1E1E1E]/40">Visiteurs uniques par jour</p>
+                        </div>
+                        {visitorEvolution.length === 0 && (
+                            <span className="ml-auto text-xs text-slate-400 italic">Aucune donnée sur cette période</span>
+                        )}
+                    </div>
+                    <div className="h-[220px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={visitorEvolution} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                <defs>
+                                    <linearGradient id="gradVisitors" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#B79A63" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#B79A63" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="gradPageviews" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#1E1E1E" stopOpacity={0.15} />
+                                        <stop offset="95%" stopColor="#1E1E1E" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
+                                <XAxis dataKey="day" tick={{ fill: '#1E1E1E', fontSize: 11 }} />
+                                <YAxis tick={{ fill: '#1E1E1E', fontSize: 11 }} allowDecimals={false} />
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: '16px',
+                                        border: 'none',
+                                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                                        fontSize: '12px'
+                                    }}
+                                    formatter={(value: any, name: string) => [
+                                        value,
+                                        name === 'unique_visitors' ? 'Visiteurs uniques' : 'Pages vues'
+                                    ]}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="page_views"
+                                    stroke="#1E1E1E"
+                                    strokeWidth={1.5}
+                                    fill="url(#gradPageviews)"
+                                    strokeDasharray="4 2"
+                                    dot={false}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="unique_visitors"
+                                    stroke="#B79A63"
+                                    strokeWidth={2.5}
+                                    fill="url(#gradVisitors)"
+                                    dot={{ fill: '#B79A63', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="flex gap-6 mt-4 justify-end">
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <div className="w-4 h-0.5 bg-[#B79A63] rounded" />
+                            <span>Visiteurs uniques</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <div className="w-4 h-0.5 bg-[#1E1E1E] rounded opacity-40" style={{ borderTop: '1px dashed' }} />
+                            <span>Pages vues</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Secondary Charts & Distribution */}
@@ -223,51 +325,57 @@ export default function AdminDashboard() {
                             </span>
                         </div>
 
-                        <div className="h-[350px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart
-                                    data={kpis?.wilaya_distribution || []}
-                                    layout="vertical"
-                                    margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F0F0F0" />
-                                    <XAxis type="number" hide />
-                                    <YAxis
-                                        dataKey="wilaya"
-                                        type="category"
-                                        tick={{ fill: '#1E1E1E', fontSize: 10, fontWeight: 600 }}
-                                        width={80}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: 'transparent' }}
-                                        contentStyle={{
-                                            borderRadius: '16px',
-                                            border: 'none',
-                                            boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)',
-                                            fontSize: '12px'
-                                        }}
-                                    />
-                                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
-                                        {(kpis?.wilaya_distribution || []).map((entry, index) => (
-                                            <Cell
-                                                key={`cell-${index}`}
-                                                fill={index % 2 === 0 ? '#B79A63' : '#1E1E1E'}
-                                            />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        {(kpis?.wilaya_distribution?.length ?? 0) === 0 ? (
+                            <div className="flex-1 flex items-center justify-center text-slate-300 italic text-sm py-16">
+                                Aucune prestation géolocalisée
+                            </div>
+                        ) : (
+                            <div className="h-[350px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={kpis?.wilaya_distribution || []}
+                                        layout="vertical"
+                                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F0F0F0" />
+                                        <XAxis type="number" hide />
+                                        <YAxis
+                                            dataKey="wilaya"
+                                            type="category"
+                                            tick={{ fill: '#1E1E1E', fontSize: 10, fontWeight: 600 }}
+                                            width={80}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'transparent' }}
+                                            contentStyle={{
+                                                borderRadius: '16px',
+                                                border: 'none',
+                                                boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)',
+                                                fontSize: '12px'
+                                            }}
+                                        />
+                                        <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
+                                            {(kpis?.wilaya_distribution || []).map((_, index) => (
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={index % 2 === 0 ? '#B79A63' : '#1E1E1E'}
+                                                />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Acquisition Feed / Fast Action */}
+                    {/* Health Score */}
                     <div className="bg-[#1E1E1E] text-white p-8 rounded-3xl shadow-2xl shadow-[#1E1E1E]/20 flex flex-col justify-between relative overflow-hidden">
                         <div className="space-y-6 relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-[#B79A63]/20 text-[#B79A63] rounded-xl">
-                                    <TrendingUp className="w-5 h-5" />
+                                    <ShieldAlert className="w-5 h-5" />
                                 </div>
-                                <h2 className="font-serif text-xl font-bold">Health Score</h2>
+                                <h2 className="font-serif text-xl font-bold">File de Validation</h2>
                             </div>
 
                             <div className="space-y-8 py-4">
@@ -287,22 +395,19 @@ export default function AdminDashboard() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#B79A63]">Rappel Activité</h4>
-                                    <p className="text-sm font-light text-white/70 leading-relaxed">
-                                        La plateforme connaît une croissance stable.
-                                        Il reste <span className="text-white font-bold">{kpis?.pending_services} éléments</span> à valider pour maintenir la fraîcheur du catalogue.
-                                    </p>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#B79A63]">En attente de validation</h4>
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex items-center justify-between bg-white/5 rounded-2xl px-4 py-3">
+                                            <span className="text-sm text-white/60">Prestataires</span>
+                                            <span className="text-2xl font-black text-[#B79A63]">{kpis?.pending_providers ?? 0}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between bg-white/5 rounded-2xl px-4 py-3">
+                                            <span className="text-sm text-white/60">Fiches totales</span>
+                                            <span className="text-2xl font-black text-white">{kpis?.pending_services ?? 0}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="pt-8 relative z-10">
-                            <button
-                                onClick={() => toast.info("Rapport complet en cours de génération...")}
-                                className="w-full py-4 bg-[#B79A63] text-[#1E1E1E] rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg shadow-[#B79A63]/10"
-                            >
-                                Télécharger le rapport
-                            </button>
                         </div>
 
                         {/* Aesthetic background shapes */}

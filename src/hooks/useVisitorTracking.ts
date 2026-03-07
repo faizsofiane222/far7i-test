@@ -2,23 +2,32 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+// Generate or retrieve a session ID for unique visitor tracking
+function getOrCreateSessionId(): string {
+    const key = "far7i_visitor_session";
+    let sessionId = sessionStorage.getItem(key);
+    if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        sessionStorage.setItem(key, sessionId);
+    }
+    return sessionId;
+}
+
 export function useVisitorTracking() {
     const location = useLocation();
 
     useEffect(() => {
         const logVisit = async () => {
             try {
-                // We use a simple insert. RLS "Anyone can insert" handles this.
+                const sessionId = getOrCreateSessionId();
                 const { error } = await (supabase as any)
                     .from("page_views")
                     .insert({
                         path: location.pathname,
-                        // viewer_id will be handled by Supabase auth.uid() if logged in
-                        // viewer_ip can be added but often requires a proxy or edge function
+                        visitor_session_id: sessionId,
                     });
 
                 if (error) {
-                    // Silent fail for tracking to not disturb user experience
                     console.warn("Tracking error:", error.message);
                 }
             } catch (e) {
