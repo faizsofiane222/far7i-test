@@ -55,6 +55,7 @@ import AdminServiceEditor from "@/pages/admin/AdminServiceEditor";
 import BlogList from "@/pages/admin/BlogList";
 import BlogEditor from "@/pages/admin/BlogEditor";
 import AdminMessagingPanel from "@/pages/admin/AdminMessagingPanel";
+import { VisitorTracker } from "@/components/analytics/VisitorTracker";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <VisitorTracker />
             <Layout>
               <Routes>
                 <Route path="/" element={<Index />} />
