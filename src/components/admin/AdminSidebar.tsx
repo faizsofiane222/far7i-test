@@ -16,7 +16,6 @@ import {
 const navigation = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Gestion Partenaires", href: "/admin/partners", icon: Users },
-    { name: "Modération", href: "/admin/moderation", icon: ShieldAlert },
     { name: "Blog", href: "/admin/blog", icon: FileText },
     { name: "Messagerie & Newsletter", href: "/admin/messaging", icon: MessageSquare },
 ];
@@ -97,9 +96,9 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
                                 />
                                 {!isCollapsed && <span className="font-lato flex-1">{item.name}</span>}
 
-                                {item.name === "Modération" && pendingModeration > 0 && (
+                                {item.name === "Gestion Partenaires" && pendingModeration > 0 && (
                                     <Badge className={cn(
-                                        "ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center font-bold text-[10px] rounded-full animate-pulse",
+                                        "ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center font-bold text-[10px] rounded-full animate-pulse bg-orange-500 hover:bg-orange-600",
                                         isCollapsed ? "absolute top-0 right-0 scale-75" : ""
                                     )}>
                                         {pendingModeration}

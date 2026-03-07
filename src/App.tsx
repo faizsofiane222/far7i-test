@@ -49,7 +49,6 @@ import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminProviders from "@/pages/admin/AdminProviders";
 import AdminPartners from "@/pages/admin/AdminPartners";
-import AdminModeration from "@/pages/admin/AdminModeration";
 import AdminProviderEditor from "@/pages/admin/AdminProviderEditor";
 import AdminServicesManager from "@/pages/admin/AdminServicesManager";
 import AdminServiceEditor from "@/pages/admin/AdminServiceEditor";
@@ -144,7 +143,7 @@ const App = () => (
                 <Route path="/admin/providers/:id/services" element={<AdminRoute><AdminServicesManager /></AdminRoute>} />
                 <Route path="/admin/providers/:id/services/new" element={<AdminRoute><AdminServiceEditor /></AdminRoute>} />
                 <Route path="/admin/providers/:id/services/:serviceId/edit" element={<AdminRoute><AdminServiceEditor /></AdminRoute>} />
-                <Route path="/admin/moderation" element={<AdminRoute><AdminModeration /></AdminRoute>} />
+
                 <Route path="/admin/blog" element={<AdminRoute><BlogList /></AdminRoute>} />
                 <Route path="/admin/blog/new" element={<AdminRoute><BlogEditor /></AdminRoute>} />
                 <Route path="/admin/blog/edit/:id" element={<AdminRoute><BlogEditor /></AdminRoute>} />
