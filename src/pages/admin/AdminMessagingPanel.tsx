@@ -243,10 +243,18 @@ export default function AdminMessagingPanel() {
                 `)
                 .order('updated_at', { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                console.error("Error fetching conversations:", error);
+                return;
+            }
+
+            if (!data) {
+                setConversations([]);
+                return;
+            }
 
             // Simple mapping to inject participant names if guest_name is missing
-            const mapped = (data || []).map((c: any) => {
+            const mapped = data.map((c: any) => {
                 if (!c.guest_name && c.conversation_participants) {
                     // Find the other participant (not the admin)
                     const other = c.conversation_participants.find((p: any) => p.user_id !== userId);
@@ -259,8 +267,7 @@ export default function AdminMessagingPanel() {
 
             setConversations(mapped);
         } catch (error) {
-            console.error("Error fetching conversations:", error);
-            toast.error("Erreur lors de la récupération des conversations");
+            console.error("Error in fetchConversations:", error);
         }
     };
 
