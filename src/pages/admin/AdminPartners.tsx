@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { GildedInput } from "@/components/ui/gilded-input";
 import { UnifiedBadge, UnifiedButton } from "@/components/unified";
-import { ModerationModal } from "@/components/admin/ModerationModal";
+import { ModerationDrawer } from "@/components/admin/ModerationDrawer";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -275,12 +275,12 @@ export default function AdminPartners() {
                 </div>
             </div>
 
-            <ModerationModal
+            <ModerationDrawer
                 isOpen={!!selectedItem}
                 onClose={() => setSelectedItem(null)}
                 type={selectedItem?.type || 'profile'}
-                data={selectedItem?.data}
-                onRefresh={fetchModerationList}
+                item={selectedItem?.data}
+                onActionComplete={fetchModerationList}
             />
         </AdminLayout>
     );

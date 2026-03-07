@@ -56,7 +56,7 @@ BEGIN
                 u.id as user_id,
                 u.display_name,
                 u.email,
-                -- Nested Profile
+                -- Nested Profile (Exhaustive)
                 (
                     SELECT json_build_object(
                         'id', u.id,
@@ -65,10 +65,21 @@ BEGIN
                         'status', COALESCE(u.status, 'pending'),
                         'rejection_reason', u.rejection_reason,
                         'pending_updates', u.pending_updates,
-                        'created_at', u.created_at
+                        'created_at', u.created_at,
+                        -- Added for immersive view
+                        'bio', p_main.bio,
+                        'profile_picture_url', p_main.profile_picture_url,
+                        'phone_number', p_main.phone_number,
+                        'social_link', p_main.social_link,
+                        'website_link', p_main.website_link,
+                        'years_of_experience', p_main.years_of_experience,
+                        'provider_type', p_main.provider_type
                     )
+                    FROM public.providers p_main 
+                    WHERE p_main.user_id = u.user_id 
+                    LIMIT 1
                 ) as profile,
-                -- Nested Prestations (providers table entries)
+                -- Nested Prestations (Exhaustive)
                 COALESCE(
                     (
                         SELECT json_agg(p_item)
@@ -77,10 +88,30 @@ BEGIN
                                 p.id,
                                 p.commercial_name,
                                 p.category_slug,
+                                p.bio,
+                                p.phone_number,
+                                p.social_link,
+                                p.website_link,
+                                p.profile_picture_url,
+                                p.years_of_experience,
+                                p.willingness_to_travel,
+                                p.base_price,
                                 COALESCE(p.status, p.moderation_status, 'pending') as status,
                                 p.rejection_reason,
                                 p.pending_updates,
                                 p.created_at,
+                                -- Full Media Gallery
+                                COALESCE(
+                                    (
+                                        SELECT json_agg(m)
+                                        FROM (
+                                            SELECT media_url, is_main, sort_order
+                                            FROM public.provider_media
+                                            WHERE provider_id = p.id
+                                            ORDER BY sort_order ASC
+                                        ) m
+                                    ), '[]'::json
+                                ) as gallery,
                                 -- Nested Reviews for this prestation
                                 COALESCE(
                                     (
@@ -96,6 +127,7 @@ BEGIN
                                                 r.created_at
                                             FROM public.reviews r
                                             WHERE r.provider_id = p.id
+                                            ORDER BY r.created_at DESC
                                         ) r_item
                                     ), '[]'::json
                                 ) as reviews
