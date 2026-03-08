@@ -280,28 +280,29 @@ export default function AdminMessagingPanel() {
                 )
             ].filter(id => id && id !== currentUserId);
 
-            let namesMap: Record<string, string> = {};
+            let namesMap: Record<string, { name: string, email: string }> = {};
 
             if (participantIds.length > 0) {
-                // Fetch from providers
+                // Fetch from users (fallback for clients AND gives us emails)
+                const { data: usersData } = await supabase
+                    .from('users')
+                    .select('user_id, display_name, email')
+                    .in('user_id', participantIds);
+                if (usersData) {
+                    usersData.forEach(u => {
+                        namesMap[u.user_id] = { name: u.display_name || 'Utilisateur', email: u.email || '' };
+                    });
+                }
+
+                // Fetch from providers (overrides name)
                 const { data: provData } = await supabase
                     .from('providers')
                     .select('user_id, commercial_name')
                     .in('user_id', participantIds);
                 if (provData) {
-                    provData.forEach(p => { namesMap[p.user_id] = p.commercial_name; });
-                }
-
-                // Fetch from users (fallback for clients)
-                const { data: usersData } = await supabase
-                    .from('users')
-                    .select('user_id, display_name')
-                    .in('user_id', participantIds);
-                if (usersData) {
-                    usersData.forEach(u => {
-                        if (!namesMap[u.user_id] && u.display_name) {
-                            namesMap[u.user_id] = u.display_name;
-                        }
+                    provData.forEach(p => {
+                        if (!namesMap[p.user_id]) namesMap[p.user_id] = { name: p.commercial_name, email: '' };
+                        else namesMap[p.user_id].name = p.commercial_name;
                     });
                 }
             }
@@ -310,12 +311,14 @@ export default function AdminMessagingPanel() {
             const mapped = data.map((c: any) => {
                 const guestParticipant = c.conversation_participants?.find((p: any) => p.user_id !== currentUserId);
                 let guest_name = c.guest_name;
+                let guest_email = '';
 
-                if (!guest_name && guestParticipant) {
-                    guest_name = namesMap[guestParticipant.user_id] || 'Utilisateur';
+                if (!guest_name && guestParticipant && namesMap[guestParticipant.user_id]) {
+                    guest_name = namesMap[guestParticipant.user_id].name;
+                    guest_email = namesMap[guestParticipant.user_id].email;
                 }
 
-                return { ...c, guest_name };
+                return { ...c, guest_name, guest_email };
             });
 
             setConversations(mapped);
@@ -798,10 +801,13 @@ export default function AdminMessagingPanel() {
                                                     </Avatar>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center justify-between mb-1">
-                                                            <span className="font-bold text-sm text-[#1E1E1E] truncate">
+                                                            <span className="font-bold text-sm text-[#1E1E1E] truncate" title={conv.guest_email || conv.guest_name}>
                                                                 {conv.guest_name || 'Utilisateur'}
                                                             </span>
                                                             <span className="text-[10px] text-slate-400">{new Date(conv.updated_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <div className="text-xs text-slate-500 mb-1 truncate">
+                                                            {conv.guest_email}
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <Badge variant="outline" className="text-[9px] h-4 px-1 uppercase tracking-tighter opacity-60">
@@ -844,6 +850,11 @@ export default function AdminMessagingPanel() {
                                                     </h3>
                                                     <span className="text-[10px] uppercase font-bold tracking-widest text-[#B79A63] flex items-center gap-1">
                                                         {conversations.find(c => c.id === activeConvId)?.type}
+                                                        {conversations.find(c => c.id === activeConvId)?.guest_email && (
+                                                            <span className="text-slate-500 normal-case tracking-normal ml-2">
+                                                                - {conversations.find(c => c.id === activeConvId)?.guest_email}
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 </div>
                                             </div>
