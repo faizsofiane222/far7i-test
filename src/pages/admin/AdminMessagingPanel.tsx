@@ -132,7 +132,7 @@ export default function AdminMessagingPanel() {
         const convChannel = supabase
             .channel('admin_conversations')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
-                fetchConversations();
+                fetchConversations(true);
             })
             .subscribe();
 
@@ -164,7 +164,16 @@ export default function AdminMessagingPanel() {
                 const newMsg = payload.new as Message;
                 setMessages(prev => {
                     if (prev.some(m => m.id === newMsg.id)) return prev;
-                    return [...prev, newMsg];
+                    // If it belongs to our active conversation and we're receiving it,
+                    // we might want to also refresh the conversations list to update 'last message' snippet
+                    fetchConversations(true);
+                    return [...prev, {
+                        id: newMsg.id,
+                        content: newMsg.content,
+                        sender_id: newMsg.sender_id,
+                        created_at: newMsg.created_at,
+                        is_me: newMsg.sender_id === userId
+                    }];
                 });
                 scrollToBottom();
 
@@ -235,7 +244,7 @@ export default function AdminMessagingPanel() {
         }
     };
 
-    const fetchConversations = async () => {
+    const fetchConversations = async (isBackgroundRefresh = false) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             const currentUserId = user?.id || userId;
@@ -257,8 +266,10 @@ export default function AdminMessagingPanel() {
                 return;
             }
 
-            if (!data) {
-                setConversations([]);
+            if (!data || data.length === 0) {
+                if (!isBackgroundRefresh) {
+                    setConversations([]);
+                }
                 return;
             }
 
