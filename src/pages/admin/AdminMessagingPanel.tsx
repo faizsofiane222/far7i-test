@@ -237,6 +237,9 @@ export default function AdminMessagingPanel() {
 
     const fetchConversations = async () => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const currentUserId = user?.id || userId;
+
             // Fetch conversations with participants and their simple profiles
             const { data, error } = await supabase
                 .from('conversations')
@@ -263,7 +266,7 @@ export default function AdminMessagingPanel() {
             const mapped = data.map((c: any) => {
                 if (!c.guest_name && c.conversation_participants) {
                     // Find the other participant (not the admin)
-                    const other = c.conversation_participants.find((p: any) => p.user_id !== userId);
+                    const other = c.conversation_participants.find((p: any) => p.user_id !== currentUserId);
                     if (other && other.profiles) {
                         return { ...c, guest_name: other.profiles.full_name, avatar_url: other.profiles.avatar_url };
                     }
