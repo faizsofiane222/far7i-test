@@ -132,6 +132,11 @@ export default function Messaging() {
                     }];
                 });
                 scrollToBottom();
+
+                // If the message is not from us, mark it as read since we are currently viewing the conversation
+                if (newMsg.sender_id !== userId) {
+                    markConversationRead(activeConversationId);
+                }
             })
             .subscribe();
 

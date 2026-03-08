@@ -167,6 +167,11 @@ export default function AdminMessagingPanel() {
                     return [...prev, newMsg];
                 });
                 scrollToBottom();
+
+                // If it's not our message, mark it as read since we are in the active conversation
+                if (newMsg.sender_id !== userId) {
+                    markConversationRead(activeConvId);
+                }
             })
             .subscribe();
 
