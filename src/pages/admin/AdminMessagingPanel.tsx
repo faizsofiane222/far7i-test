@@ -249,20 +249,20 @@ export default function AdminMessagingPanel() {
             const { data: { user } } = await supabase.auth.getUser();
             const currentUserId = user?.id || userId;
 
-            // Fetch conversations with participants and their simple profiles
+            // Fetch conversations with participants (NO invalid 'profiles' relation)
             const { data, error } = await supabase
                 .from('conversations')
                 .select(`
                     *,
                     conversation_participants(
-                        user_id,
-                        profiles:user_id(full_name, avatar_url)
+                        user_id
                     )
                 `)
                 .order('updated_at', { ascending: false });
 
             if (error) {
-                console.error("Error fetching conversations:", error);
+                console.error("Error fetching conversations:", error.message || error);
+                if (!isBackgroundRefresh) setConversations([]);
                 return;
             }
 
@@ -273,16 +273,49 @@ export default function AdminMessagingPanel() {
                 return;
             }
 
-            // Simple mapping to inject participant names if guest_name is missing
-            const mapped = data.map((c: any) => {
-                if (!c.guest_name && c.conversation_participants) {
-                    // Find the other participant (not the admin)
-                    const other = c.conversation_participants.find((p: any) => p.user_id !== currentUserId);
-                    if (other && other.profiles) {
-                        return { ...c, guest_name: other.profiles.full_name, avatar_url: other.profiles.avatar_url };
-                    }
+            // Gather unique guest user_ids to fetch names
+            const participantIds = [
+                ...new Set(
+                    data.flatMap(c => c.conversation_participants?.map((p: any) => p.user_id) || [])
+                )
+            ].filter(id => id && id !== currentUserId);
+
+            let namesMap: Record<string, string> = {};
+
+            if (participantIds.length > 0) {
+                // Fetch from providers
+                const { data: provData } = await supabase
+                    .from('providers')
+                    .select('user_id, commercial_name')
+                    .in('user_id', participantIds);
+                if (provData) {
+                    provData.forEach(p => { namesMap[p.user_id] = p.commercial_name; });
                 }
-                return c;
+
+                // Fetch from users (fallback for clients)
+                const { data: usersData } = await supabase
+                    .from('users')
+                    .select('user_id, display_name')
+                    .in('user_id', participantIds);
+                if (usersData) {
+                    usersData.forEach(u => {
+                        if (!namesMap[u.user_id] && u.display_name) {
+                            namesMap[u.user_id] = u.display_name;
+                        }
+                    });
+                }
+            }
+
+            // Inject participant names
+            const mapped = data.map((c: any) => {
+                const guestParticipant = c.conversation_participants?.find((p: any) => p.user_id !== currentUserId);
+                let guest_name = c.guest_name;
+
+                if (!guest_name && guestParticipant) {
+                    guest_name = namesMap[guestParticipant.user_id] || 'Utilisateur';
+                }
+
+                return { ...c, guest_name };
             });
 
             setConversations(mapped);
