@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 interface ModerationItem {
     id: string;
     status: string;
+    moderation_status?: string;
     created_at: string;
     rejection_reason?: string;
     pending_updates?: any;
@@ -138,11 +139,17 @@ export default function AdminPartners() {
                                 <tbody className="divide-y divide-[#D4D2CF]">
                                     {filteredPartners.map((partner) => {
                                         const isExpanded = expandedRows[partner.user_id];
-                                        const pendingCount = (partner.profile?.status === 'pending' ? 1 : 0) +
-                                            (partner.prestations?.filter((p: any) => p.status === 'pending').length ?? 0);
+                                        // Check both 'status' (new column) AND 'moderation_status' (old column)
+                                        const profilePending =
+                                            partner.profile?.status === 'pending' ||
+                                            partner.profile?.moderation_status === 'pending';
+                                        const prestaPending = partner.prestations?.filter(
+                                            (p: any) => p.status === 'pending' || p.moderation_status === 'pending'
+                                        ).length ?? 0;
+                                        const pendingCount = (profilePending ? 1 : 0) + prestaPending;
 
                                         return (
-                                            <>
+                                            <React.Fragment key={partner.user_id}>
                                                 <tr
                                                     key={partner.user_id}
                                                     className={cn(
@@ -203,7 +210,14 @@ export default function AdminPartners() {
                                                                     className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D4D2CF] hover:border-[#B79A63] transition-all cursor-pointer shadow-sm group/item"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        setSelectedItem({ type: 'profile', data: partner.profile });
+                                                                        // Build fallback profile if null (migration pending)
+                                                                        const profileData = partner.profile || {
+                                                                            id: partner.user_id,
+                                                                            display_name: partner.display_name,
+                                                                            email: partner.email,
+                                                                            status: 'pending',
+                                                                        };
+                                                                        setSelectedItem({ type: 'profile', data: profileData });
                                                                     }}
                                                                 >
                                                                     <div className="flex items-center gap-3">
@@ -265,7 +279,7 @@ export default function AdminPartners() {
                                                         </td>
                                                     </tr>
                                                 )}
-                                            </>
+                                            </React.Fragment>
                                         );
                                     })}
                                 </tbody>
