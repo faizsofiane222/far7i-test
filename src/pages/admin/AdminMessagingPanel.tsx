@@ -278,17 +278,17 @@ export default function AdminMessagingPanel() {
         }
         setSearchingData(true);
         try {
-            // Query public.users (not profiles which doesn't exist)
-            const { data, error } = await (supabase as any)
-                .from('users')
-                .select('user_id, display_name, email')
-                .or(`display_name.ilike.%${query}%,email.ilike.%${query}%`)
-                .limit(8);
+            // Use SECURITY DEFINER RPC to bypass RLS on public.users
+            // (Direct queries return 0 results because RLS restricts reads to own row only)
+            const { data, error } = await (supabase as any).rpc('search_users', {
+                p_query: query
+            });
 
             if (error) throw error;
             setSearchResults(data || []);
         } catch (error) {
             console.error("Search error:", error);
+            setSearchResults([]);
         } finally {
             setSearchingData(false);
         }
