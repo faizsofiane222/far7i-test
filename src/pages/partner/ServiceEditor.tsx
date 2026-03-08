@@ -385,11 +385,9 @@ export default function ServiceEditor({ serviceIdProp, providerIdProp, isNewProp
                     .from("providers") // Update providers table
                     .update({
                         pending_changes: {
-                            ...providerData, // Use providerData
-                            media, // Media is part of pending changes
-                            // inclusions, options, faqs are removed
-                        } as any,
-                        modification_submitted: submitForValidation
+                            ...providerData,
+                            media,
+                        } as any
                     })
                     .eq("id", id);
                 if (error) throw error;

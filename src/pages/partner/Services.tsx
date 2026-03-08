@@ -172,6 +172,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                     category_slug,
                     moderation_status,
                     base_price,
+                    pending_changes,
                     provider_media(media_url, is_main),
                     provider_stats(rating_avg, review_count)
                 `);
@@ -201,6 +202,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                 is_active: p.moderation_status === 'approved',
                 service_category_id: p.category_slug, // using slug as ID for simplicity here
                 moderation_status: p.moderation_status || 'incomplete',
+                modification_submitted: p.pending_changes !== null,
                 category_name: p.category_slug, // Will be mapped below
                 image_url: p.provider_media?.find((m: any) => m.is_main)?.media_url || p.provider_media?.[0]?.media_url,
                 rating_avg: (p.provider_stats as any)?.[0]?.rating_avg || 0,

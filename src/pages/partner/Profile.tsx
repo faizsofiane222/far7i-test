@@ -383,8 +383,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
             if (shouldSubmitPending) {
                 const { error: pendError } = await supabase.from("providers").update({
-                    pending_changes: profileData as any,
-                    modification_submitted: submitForValidation
+                    pending_changes: profileData as any
                 }).eq("id", providerId);
                 if (pendError) throw pendError;
 

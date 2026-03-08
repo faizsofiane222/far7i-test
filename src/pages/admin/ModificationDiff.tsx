@@ -27,7 +27,7 @@ export function ModificationDiff({ originalData, pendingData, onApprove, onRejec
     // Identify changed keys
     const allKeys = new Set([...Object.keys(pendingData || {})]);
     const changes: string[] = [];
-    const IGNORED_KEYS = ['updated_at', 'created_at', 'id', 'user_id', 'provider_id', 'moderation_status', 'pending_changes', 'modification_submitted'];
+    const IGNORED_KEYS = ['updated_at', 'created_at', 'id', 'user_id', 'provider_id', 'moderation_status', 'pending_changes'];
 
     allKeys.forEach(key => {
         if (IGNORED_KEYS.includes(key)) return;
