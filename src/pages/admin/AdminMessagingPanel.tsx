@@ -278,11 +278,12 @@ export default function AdminMessagingPanel() {
         }
         setSearchingData(true);
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('id, full_name, avatar_url')
-                .ilike('full_name', `%${query}%`)
-                .limit(5);
+            // Query public.users (not profiles which doesn't exist)
+            const { data, error } = await (supabase as any)
+                .from('users')
+                .select('user_id, display_name, email')
+                .or(`display_name.ilike.%${query}%,email.ilike.%${query}%`)
+                .limit(8);
 
             if (error) throw error;
             setSearchResults(data || []);
@@ -547,20 +548,22 @@ export default function AdminMessagingPanel() {
                                                         {searchingData ? (
                                                             <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-[#B79A63]" /></div>
                                                         ) : searchResults.length > 0 ? (
-                                                            searchResults.map(provider => (
+                                                            searchResults.map(user => (
                                                                 <button
-                                                                    key={provider.id}
-                                                                    onClick={() => handleStartNewConversation(provider.id)}
+                                                                    key={user.user_id}
+                                                                    onClick={() => handleStartNewConversation(user.user_id)}
                                                                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#EBE6DA] transition-colors text-left"
                                                                 >
-                                                                    <Avatar className="h-8 w-8">
-                                                                        <AvatarImage src={provider.avatar_url} />
-                                                                        <AvatarFallback>{provider.full_name?.[0]}</AvatarFallback>
+                                                                    <Avatar className="h-9 w-9">
+                                                                        <AvatarFallback className="bg-[#1E1E1E] text-[#B79A63] font-bold">
+                                                                            {user.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                                                                        </AvatarFallback>
                                                                     </Avatar>
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className="font-bold text-sm truncate">{provider.full_name}</p>
+                                                                        <p className="font-bold text-sm truncate text-[#1E1E1E]">{user.display_name || 'Sans nom'}</p>
+                                                                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
                                                                     </div>
-                                                                    <ChevronRight className="w-4 h-4 text-[#B79A63]" />
+                                                                    <ChevronRight className="w-4 h-4 text-[#B79A63] flex-shrink-0" />
                                                                 </button>
                                                             ))
                                                         ) : searchQuery && (
