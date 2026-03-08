@@ -278,12 +278,10 @@ export default function AdminMessagingPanel() {
         }
         setSearchingData(true);
         try {
-            // Use SECURITY DEFINER RPC to bypass RLS on public.users
-            // (Direct queries return 0 results because RLS restricts reads to own row only)
-            const { data, error } = await (supabase as any).rpc('search_users', {
+            // SECURITY DEFINER RPC: bypasses RLS, searches name + email + commercial_name
+            const { data, error } = await (supabase as any).rpc('search_users_for_chat', {
                 p_query: query
             });
-
             if (error) throw error;
             setSearchResults(data || []);
         } catch (error) {
@@ -555,13 +553,17 @@ export default function AdminMessagingPanel() {
                                                                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#EBE6DA] transition-colors text-left"
                                                                 >
                                                                     <Avatar className="h-9 w-9">
-                                                                        <AvatarFallback className="bg-[#1E1E1E] text-[#B79A63] font-bold">
-                                                                            {user.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                                                                        <AvatarFallback className="bg-[#1E1E1E] text-[#B79A63] font-bold text-sm">
+                                                                            {(user.commercial_name || user.display_name || user.email)?.[0]?.toUpperCase() || '?'}
                                                                         </AvatarFallback>
                                                                     </Avatar>
                                                                     <div className="flex-1 min-w-0">
-                                                                        <p className="font-bold text-sm truncate text-[#1E1E1E]">{user.display_name || 'Sans nom'}</p>
-                                                                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                                                                        <p className="font-bold text-sm truncate text-[#1E1E1E]">
+                                                                            {user.commercial_name || user.display_name || 'Sans nom'}
+                                                                        </p>
+                                                                        <p className="text-xs text-slate-400 truncate">
+                                                                            {user.commercial_name && user.display_name ? `${user.display_name} · ` : ''}{user.email}
+                                                                        </p>
                                                                     </div>
                                                                     <ChevronRight className="w-4 h-4 text-[#B79A63] flex-shrink-0" />
                                                                 </button>
