@@ -109,8 +109,9 @@ export default function AdminMessagingPanel() {
     // New Conversation State
     const [isNewChatOpen, setIsNewChatOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [searchingData, setSearchingData] = useState(false);
+    const [allUsers, setAllUsers] = useState<any[]>([]);
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
     const [newChatInitialMessage, setNewChatInitialMessage] = useState("Bonjour, nous souhaiterions échanger avec vous concernant votre profil Far7i.");
 
     useEffect(() => {
@@ -271,54 +272,78 @@ export default function AdminMessagingPanel() {
         }
     };
 
-    const searchProviders = async (query: string) => {
-        if (!query.trim()) {
-            setSearchResults([]);
-            return;
-        }
-        setSearchingData(true);
+    // Load all users when dialog opens
+    const loadAllUsers = async () => {
+        setLoadingUsers(true);
         try {
-            // SECURITY DEFINER RPC: bypasses RLS, searches name + email + commercial_name
+            // Empty query returns all users (ILIKE '%%' matches everything)
             const { data, error } = await (supabase as any).rpc('search_users_for_chat', {
-                p_query: query
+                p_query: ''
             });
             if (error) throw error;
-            setSearchResults(data || []);
+            setAllUsers(data || []);
         } catch (error) {
-            console.error("Search error:", error);
-            setSearchResults([]);
+            console.error("Load users error:", error);
+            setAllUsers([]);
         } finally {
-            setSearchingData(false);
+            setLoadingUsers(false);
         }
     };
 
-    const handleStartNewConversation = async (targetUserId: string) => {
-        if (!newChatInitialMessage.trim()) {
-            toast.error("Veuillez saisir un message initial");
-            return;
-        }
+    const toggleUserSelection = (userId: string) => {
+        setSelectedUserIds(prev =>
+            prev.includes(userId)
+                ? prev.filter(id => id !== userId)
+                : [...prev, userId]
+        );
+    };
 
+    // Filter displayed users by search query (client-side after initial load)
+    const filteredUsers = allUsers.filter(u =>
+        !searchQuery.trim() ||
+        u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.commercial_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+
+    const handleStartNewConversation = async (targetUserId: string) => {
         try {
-            setSending(true);
-            const { data, error } = await supabase.rpc('start_admin_conversation', {
+            const { data, error } = await (supabase as any).rpc('start_admin_conversation', {
                 p_target_user_id: targetUserId,
                 p_initial_message: newChatInitialMessage.trim()
             });
-
             if (error) throw error;
-
-            toast.success("Conversation initialisée");
-            setIsNewChatOpen(false);
-            setSearchQuery("");
-            setSearchResults([]);
-            await fetchConversations();
-            setActiveConvId(data); // Set the new conversation as active
+            return data as string;
         } catch (error: any) {
-            toast.error("Erreur: " + error.message);
-        } finally {
-            setSending(false);
+            throw error;
         }
     };
+
+    const handleStartConversationsWithSelected = async () => {
+        if (selectedUserIds.length === 0 || !newChatInitialMessage.trim()) return;
+        setSending(true);
+        let lastConvId: string | null = null;
+        let successCount = 0;
+        for (const uid of selectedUserIds) {
+            try {
+                lastConvId = await handleStartNewConversation(uid);
+                successCount++;
+            } catch (err: any) {
+                toast.error(`Erreur pour un contact : ${err.message}`);
+            }
+        }
+        setSending(false);
+        if (successCount > 0) {
+            toast.success(`${successCount} conversation${successCount > 1 ? 's' : ''} démarrée${successCount > 1 ? 's' : ''} !`);
+            setIsNewChatOpen(false);
+            setSelectedUserIds([]);
+            setSearchQuery('');
+            await fetchConversations();
+            if (lastConvId) setActiveConvId(lastConvId);
+        }
+    };
+
 
     const fetchMessages = async (id: string) => {
         const { data, error } = await supabase
@@ -517,70 +542,138 @@ export default function AdminMessagingPanel() {
                                 <div className="p-4 border-b border-[#D4D2CF]/50 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h2 className="font-serif font-bold text-xl text-[#1E1E1E]">Messages</h2>
-                                        <Dialog open={isNewChatOpen} onOpenChange={setIsNewChatOpen}>
+                                        <Dialog open={isNewChatOpen} onOpenChange={(open) => {
+                                            setIsNewChatOpen(open);
+                                            if (open) {
+                                                setSearchQuery("");
+                                                setSelectedUserIds([]);
+                                                loadAllUsers();
+                                            }
+                                        }}>
                                             <DialogTrigger asChild>
                                                 <Button size="icon" variant="ghost" className="text-[#B79A63] hover:bg-[#B79A63]/10">
                                                     <Plus className="w-5 h-5" />
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="sm:max-w-[425px] bg-[#F8F5F0] border-[#D4D2CF]">
+                                            <DialogContent className="sm:max-w-[460px] bg-[#F8F5F0] border-[#D4D2CF]">
                                                 <DialogHeader>
-                                                    <DialogTitle className="font-serif text-2xl font-bold text-[#1E1E1E]">Contactez un Prestataire</DialogTitle>
-                                                    <DialogDescription>Recherchez un prestataire par son nom pour engager la conversation.</DialogDescription>
+                                                    <DialogTitle className="font-serif text-2xl font-bold text-[#1E1E1E]">
+                                                        Nouvelle conversation
+                                                    </DialogTitle>
+                                                    <DialogDescription>
+                                                        Sélectionnez un ou plusieurs contacts, puis rédigez votre message.
+                                                    </DialogDescription>
                                                 </DialogHeader>
-                                                <div className="space-y-4 py-4">
+                                                <div className="space-y-4 py-2">
+                                                    {/* Search filter */}
                                                     <div className="relative">
                                                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                                         <Input
-                                                            placeholder="Rechercher par nom ou email..."
+                                                            placeholder="Filtrer par nom, email ou nom commercial..."
                                                             value={searchQuery}
-                                                            onChange={(e) => {
-                                                                setSearchQuery(e.target.value);
-                                                                searchProviders(e.target.value);
-                                                            }}
-                                                            className="pl-9 h-11 bg-white border-[#D4D2CF] focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
+                                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                                            className="pl-9 h-10 bg-white border-[#D4D2CF] focus:ring-[#B79A63]/50 focus:border-[#B79A63]"
                                                         />
                                                     </div>
 
-                                                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                                                        {searchingData ? (
-                                                            <div className="flex justify-center p-4"><Loader2 className="w-4 h-4 animate-spin text-[#B79A63]" /></div>
-                                                        ) : searchResults.length > 0 ? (
-                                                            searchResults.map(user => (
+                                                    {/* Users list */}
+                                                    <div className="rounded-xl border border-[#D4D2CF] bg-white overflow-hidden">
+                                                        <div className="max-h-[260px] overflow-y-auto divide-y divide-[#F0EDE8]">
+                                                            {loadingUsers ? (
+                                                                <div className="flex items-center justify-center p-6 gap-3">
+                                                                    <Loader2 className="w-5 h-5 animate-spin text-[#B79A63]" />
+                                                                    <span className="text-sm text-slate-500">Chargement des contacts...</span>
+                                                                </div>
+                                                            ) : filteredUsers.length === 0 ? (
+                                                                <div className="p-6 text-center text-sm text-slate-400">
+                                                                    {searchQuery ? "Aucun résultat pour cette recherche." : "Aucun utilisateur trouvé."}
+                                                                </div>
+                                                            ) : (
+                                                                filteredUsers.map(user => {
+                                                                    const isSelected = selectedUserIds.includes(user.user_id);
+                                                                    const name = user.commercial_name || user.display_name || 'Sans nom';
+                                                                    const sub = [user.commercial_name && user.display_name ? user.display_name : null, user.email].filter(Boolean).join(' · ');
+                                                                    return (
+                                                                        <button
+                                                                            key={user.user_id}
+                                                                            onClick={() => toggleUserSelection(user.user_id)}
+                                                                            className={cn(
+                                                                                "w-full flex items-center gap-3 px-4 py-3 transition-colors text-left",
+                                                                                isSelected ? "bg-[#B79A63]/10" : "hover:bg-[#F8F5F0]"
+                                                                            )}
+                                                                        >
+                                                                            {/* Checkbox */}
+                                                                            <div className={cn(
+                                                                                "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                                                                                isSelected ? "bg-[#B79A63] border-[#B79A63]" : "border-[#D4D2CF] bg-white"
+                                                                            )}>
+                                                                                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                                                            </div>
+                                                                            <Avatar className="h-8 w-8 flex-shrink-0">
+                                                                                <AvatarFallback className={cn(
+                                                                                    "text-xs font-bold",
+                                                                                    isSelected ? "bg-[#B79A63] text-white" : "bg-[#1E1E1E] text-[#B79A63]"
+                                                                                )}>
+                                                                                    {name[0]?.toUpperCase() || '?'}
+                                                                                </AvatarFallback>
+                                                                            </Avatar>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="font-semibold text-sm truncate text-[#1E1E1E]">{name}</p>
+                                                                                {sub && <p className="text-xs text-slate-400 truncate">{sub}</p>}
+                                                                            </div>
+                                                                            {user.role && (
+                                                                                <span className={cn(
+                                                                                    "text-[10px] font-bold uppercase px-1.5 py-0.5 rounded flex-shrink-0",
+                                                                                    user.role === 'provider' ? "bg-green-50 text-green-700" :
+                                                                                        user.role === 'admin' ? "bg-red-50 text-red-700" :
+                                                                                            "bg-slate-100 text-slate-500"
+                                                                                )}>{user.role}</span>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })
+                                                            )}
+                                                        </div>
+                                                        {/* Selected count badge */}
+                                                        {selectedUserIds.length > 0 && (
+                                                            <div className="border-t border-[#F0EDE8] px-4 py-2 bg-[#B79A63]/5 flex items-center justify-between">
+                                                                <span className="text-xs text-[#B79A63] font-bold">
+                                                                    {selectedUserIds.length} contact{selectedUserIds.length > 1 ? 's' : ''} sélectionné{selectedUserIds.length > 1 ? 's' : ''}
+                                                                </span>
                                                                 <button
-                                                                    key={user.user_id}
-                                                                    onClick={() => handleStartNewConversation(user.user_id)}
-                                                                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#EBE6DA] transition-colors text-left"
+                                                                    onClick={() => setSelectedUserIds([])}
+                                                                    className="text-xs text-slate-400 hover:text-red-500"
                                                                 >
-                                                                    <Avatar className="h-9 w-9">
-                                                                        <AvatarFallback className="bg-[#1E1E1E] text-[#B79A63] font-bold text-sm">
-                                                                            {(user.commercial_name || user.display_name || user.email)?.[0]?.toUpperCase() || '?'}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className="font-bold text-sm truncate text-[#1E1E1E]">
-                                                                            {user.commercial_name || user.display_name || 'Sans nom'}
-                                                                        </p>
-                                                                        <p className="text-xs text-slate-400 truncate">
-                                                                            {user.commercial_name && user.display_name ? `${user.display_name} · ` : ''}{user.email}
-                                                                        </p>
-                                                                    </div>
-                                                                    <ChevronRight className="w-4 h-4 text-[#B79A63] flex-shrink-0" />
+                                                                    Effacer
                                                                 </button>
-                                                            ))
-                                                        ) : searchQuery && (
-                                                            <p className="text-center text-xs text-slate-500 py-4">Aucun résultat trouvé.</p>
+                                                            </div>
                                                         )}
                                                     </div>
 
+                                                    {/* Message */}
                                                     <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-[#1E1E1E]">Message de bienvenue</label>
+                                                        <label className="text-xs font-bold text-[#1E1E1E]">Message initial</label>
                                                         <textarea
                                                             value={newChatInitialMessage}
                                                             onChange={(e) => setNewChatInitialMessage(e.target.value)}
-                                                            className="w-full p-3 rounded-xl border border-[#D4D2CF] bg-white text-sm focus:ring-[#B79A63]/50 focus:border-[#B79A63] outline-none min-h-[80px]"
+                                                            className="w-full p-3 rounded-xl border border-[#D4D2CF] bg-white text-sm focus:ring-[#B79A63]/50 focus:border-[#B79A63] outline-none min-h-[80px] resize-none"
                                                         />
                                                     </div>
+
+                                                    {/* Send button */}
+                                                    <Button
+                                                        onClick={handleStartConversationsWithSelected}
+                                                        disabled={selectedUserIds.length === 0 || !newChatInitialMessage.trim() || sending}
+                                                        className="w-full bg-[#1E1E1E] hover:bg-[#B79A63] text-white font-bold rounded-xl h-11 transition-colors"
+                                                    >
+                                                        {sending ? (
+                                                            <><Loader2 className="w-4 h-4 animate-spin mr-2" />Envoi en cours...</>
+                                                        ) : (
+                                                            <><Send className="w-4 h-4 mr-2" />
+                                                                Démarrer {selectedUserIds.length > 1 ? `${selectedUserIds.length} conversations` : 'la conversation'}
+                                                            </>
+                                                        )}
+                                                    </Button>
                                                 </div>
                                             </DialogContent>
                                         </Dialog>
