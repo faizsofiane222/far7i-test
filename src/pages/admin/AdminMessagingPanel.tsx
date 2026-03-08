@@ -286,14 +286,19 @@ export default function AdminMessagingPanel() {
             // Strategy 2: get_admin_moderation_list (already applied, returns users)
             const { data: modData, error: modErr } = await (supabase as any).rpc('get_admin_moderation_list');
             if (!modErr && modData && modData.length > 0) {
-                const users = modData.map((item: any) => ({
-                    user_id: item.user_id,
-                    display_name: item.display_name,
-                    email: item.email,
-                    commercial_name: item.profile?.commercial_name || null,
-                    role: 'provider'
-                }));
-                setAllUsers(users);
+                const usersMap = new Map();
+                modData.forEach((item: any) => {
+                    if (!usersMap.has(item.user_id)) {
+                        usersMap.set(item.user_id, {
+                            user_id: item.user_id,
+                            display_name: item.display_name,
+                            email: item.email,
+                            commercial_name: item.profile?.commercial_name || null,
+                            role: 'provider'
+                        });
+                    }
+                });
+                setAllUsers(Array.from(usersMap.values()));
                 return;
             }
 
@@ -622,8 +627,8 @@ export default function AdminMessagingPanel() {
                                                             ) : (
                                                                 filteredUsers.map(user => {
                                                                     const isSelected = selectedUserIds.includes(user.user_id);
-                                                                    const name = user.commercial_name || user.display_name || 'Sans nom';
-                                                                    const sub = [user.commercial_name && user.display_name ? user.display_name : null, user.email].filter(Boolean).join(' · ');
+                                                                    const name = user.display_name || user.email?.split('@')[0] || 'Utilisateur';
+                                                                    const sub = user.email;
                                                                     return (
                                                                         <button
                                                                             key={user.user_id}
