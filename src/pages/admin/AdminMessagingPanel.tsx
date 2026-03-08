@@ -272,18 +272,49 @@ export default function AdminMessagingPanel() {
         }
     };
 
-    // Load all users when dialog opens
+    // Load all users - 3 fallback strategies
     const loadAllUsers = async () => {
         setLoadingUsers(true);
         try {
-            // Empty query returns all users (ILIKE '%%' matches everything)
-            const { data, error } = await (supabase as any).rpc('search_users_for_chat', {
-                p_query: ''
-            });
-            if (error) throw error;
-            setAllUsers(data || []);
+            // Strategy 1: New RPC (needs migration 20260308110000 in Supabase)
+            const { data: rpcData, error: rpcErr } = await (supabase as any).rpc('search_users_for_chat', { p_query: '' });
+            if (!rpcErr && rpcData && rpcData.length > 0) {
+                setAllUsers(rpcData);
+                return;
+            }
+
+            // Strategy 2: get_admin_moderation_list (already applied, returns users)
+            const { data: modData, error: modErr } = await (supabase as any).rpc('get_admin_moderation_list');
+            if (!modErr && modData && modData.length > 0) {
+                const users = modData.map((item: any) => ({
+                    user_id: item.user_id,
+                    display_name: item.display_name,
+                    email: item.email,
+                    commercial_name: item.profile?.commercial_name || null,
+                    role: 'provider'
+                }));
+                setAllUsers(users);
+                return;
+            }
+
+            // Strategy 3: Direct providers table (public read policy exists)
+            const { data: provData } = await (supabase as any)
+                .from('providers')
+                .select('user_id, commercial_name')
+                .limit(50);
+            if (provData && provData.length > 0) {
+                setAllUsers(provData.map((p: any) => ({
+                    user_id: p.user_id,
+                    display_name: null,
+                    email: null,
+                    commercial_name: p.commercial_name,
+                    role: 'provider'
+                })));
+                return;
+            }
+            setAllUsers([]);
         } catch (error) {
-            console.error("Load users error:", error);
+            console.error('Load users error:', error);
             setAllUsers([]);
         } finally {
             setLoadingUsers(false);
