@@ -23,6 +23,7 @@ import PartnerServices from "./pages/partner/Services";
 import PartnerServiceEditor from "./pages/partner/ServiceEditor";
 import VenueEditor from "./pages/partner/VenueEditor";
 import LieuReceptionWizard from "./pages/partner/wizard/LieuReceptionWizard";
+import TraiteurWizard from "./pages/partner/wizard/TraiteurWizard";
 import CateringEditor from "./pages/partner/CateringEditor";
 import DJOrchestraEditor from "./pages/partner/DJOrchestraEditor";
 import TraditionalMusicEditor from "./pages/partner/TraditionalMusicEditor";
@@ -103,8 +104,10 @@ const App = () => (
                 {/* Specific Editors First */}
                 <Route path="/partner/dashboard/services/venues/new" element={<ProtectedRoute><LieuReceptionWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/venues/:id/edit" element={<ProtectedRoute><LieuReceptionWizard /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/catering/new" element={<ProtectedRoute><CateringEditor isNewProp={true} /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/catering/:id/edit" element={<ProtectedRoute><CateringEditor isNewProp={false} /></ProtectedRoute>} />
+                {/* <Route path="/partner/dashboard/services/catering/new" element={<ProtectedRoute><CateringEditor isNewProp={true} /></ProtectedRoute>} /> */}
+                {/* <Route path="/partner/dashboard/services/catering/:id/edit" element={<ProtectedRoute><CateringEditor isNewProp={false} /></ProtectedRoute>} /> */}
+                <Route path="/partner/dashboard/services/catering/wizard" element={<ProtectedRoute><TraiteurWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/catering/wizard/:id" element={<ProtectedRoute><TraiteurWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/dj-orchestra/new" element={<ProtectedRoute><DJOrchestraEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/dj-orchestra/:id/edit" element={<ProtectedRoute><DJOrchestraEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/new" element={<ProtectedRoute><TraditionalMusicEditor /></ProtectedRoute>} />
