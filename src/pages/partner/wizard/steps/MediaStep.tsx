@@ -1,153 +1,134 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useFormContext } from "react-hook-form";
-import { Label } from "@/components/ui/label";
-import { GildedInput } from "@/components/ui/gilded-input";
-import { GildedButton } from "@/components/ui/gilded-button";
-import { Image as ImageIcon, X, Box, Phone, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { Image as ImageIcon, X, UploadCloud, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { compressAndUpload } from "@/lib/image-utils";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export default function MediaStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
-    const media: string[] = watch("media", []);
-    const formulaireFar7i = watch("formulaire_far7i", true);
+    const mediaList = watch("media") || [];
+    const formulaire_far7i = watch("formulaire_far7i");
 
-    const { user } = useAuth();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !user) return;
+    // Mock Upload Logic
+    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files) return;
 
-        if (media.length >= 5) {
-            toast.error("Vous avez atteint la limite de 5 photos pour un compte gratuit.");
+        if (mediaList.length + files.length > 5) {
+            toast.error("Vous ne pouvez télécharger que 5 photos maximum (Freemium).");
             return;
         }
 
-        const toastId = toast.loading("Upload de la photo en cours...");
-        try {
-            setUploading(true);
-            const { publicUrl, error: uploadError } = await compressAndUpload(
-                file,
-                user.id,
-                { folder: `${user.id}/venues`, maxWidthOrHeight: 1600 }
-            );
-
-            if (uploadError) throw uploadError;
-
-            setValue("media", [...media, publicUrl], { shouldValidate: true, shouldDirty: true });
-            toast.success("Photo ajoutée", { id: toastId });
-        } catch (error: any) {
-            console.error(error);
-            toast.error("Erreur d'upload: " + (error.message || "Erreur inconnue"), { id: toastId });
-        } finally {
+        setUploading(true);
+        // Simulate upload delay and mock image generation
+        setTimeout(() => {
+            const newMedia = Array.from(files).map(file => URL.createObjectURL(file));
+            setValue("media", [...mediaList, ...newMedia], { shouldValidate: true });
             setUploading(false);
-            e.target.value = '';
-        }
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }, 1000);
     };
 
-    const removeMedia = (index: number) => {
-        setValue("media", media.filter((_, i) => i !== index), { shouldValidate: true, shouldDirty: true });
+    const removeMedia = (indexToRemove: number) => {
+        const updated = mediaList.filter((_: any, idx: number) => idx !== indexToRemove);
+        setValue("media", updated, { shouldValidate: true });
     };
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div>
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-serif font-bold text-[#1E1E1E] flex items-center gap-2">
-                        5. Médias & Contact
-                    </h2>
-                    <GildedButton
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('media-upload-wizard')?.click()}
-                        disabled={media.length >= 5 || uploading}
-                        className="h-9 text-xs px-3 bg-white"
-                    >
-                        {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-2" />}
-                        Ajouter une photo
-                    </GildedButton>
-                </div>
-                <p className="text-sm text-[#1E1E1E]/60 mb-6">
-                    Les futurs mariés choisissent d'abord avec les yeux. Ajoutez <span className="font-bold">entre 1 et 5 photos</span> (couverture, salle, extérieur...).
-                </p>
-
-                {errors.media && <p className="text-red-500 text-sm mb-4 bg-red-50 p-3 rounded-lg border border-red-200">{errors.media.message as string}</p>}
-
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {media.map((url, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-2xl border border-[#D4D2CF] overflow-hidden group bg-white">
-                            <img src={url} alt={`Media ${idx}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button type="button" onClick={() => removeMedia(idx)} className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg">
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                            {idx === 0 && <div className="absolute top-2 left-2 bg-[#B79A63] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">Couverture</div>}
-                        </div>
-                    ))}
-                    {media.length < 5 && (
-                        <button
-                            type="button"
-                            disabled={uploading}
-                            onClick={() => document.getElementById('media-upload-wizard')?.click()}
-                            className={cn(
-                                "aspect-square rounded-2xl border-2 border-dashed border-[#D4D2CF] flex flex-col items-center justify-center gap-2 text-[#1E1E1E]/40 transition-all",
-                                uploading ? "opacity-50 cursor-not-allowed" : "hover:text-[#B79A63] hover:border-[#B79A63]/50 hover:bg-[#F8F5F0]"
-                            )}
-                        >
-                            {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Box className="w-6 h-6" />}
-                            <span className="text-[10px] uppercase font-bold tracking-widest">{media.length === 0 ? "Couverture" : "Ajouter"}</span>
-                        </button>
-                    )}
-                </div>
-                <input type="file" id="media-upload-wizard" className="hidden" accept="image/*" onChange={handleUpload} />
-
-                <div className="mt-4 flex items-center gap-2 text-xs text-[#1E1E1E]/60 bg-[#EBE6DA] p-3 rounded-lg border border-[#B79A63]/20">
-                    <AlertCircle className="w-4 h-4 text-[#B79A63]" />
-                    <p>La limite est fixée à 5 photos pour la version standard. Une offre Premium sera bientôt disponible pour des galeries illimitées.</p>
-                </div>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 font-lato">
+            <div className="mb-6">
+                <h2 className="text-xl font-serif font-bold text-[#1E1E1E] mb-2 flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-[#B79A63]" /> 5. Médias & Contact
+                </h2>
+                <p className="text-sm text-[#1E1E1E]/80 mb-6">Ajoutez des photos attrayantes de votre salle pour donner envie aux mariés.</p>
             </div>
 
-            <div className="pt-8 border-t border-[#D4D2CF] space-y-6">
-                <h2 className="text-lg font-serif font-bold text-[#1E1E1E] mb-4">Moyens de Contact</h2>
+            <div className="bg-white p-6 rounded-2xl border border-[#D4D2CF] shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <label className="block text-sm font-bold text-[#1E1E1E]">Galerie Photos (Minimum 1, Maximum 5)</label>
+                    <span className="text-xs font-bold px-3 py-1 bg-[#1E1E1E]/5 text-[#1E1E1E] rounded-full">
+                        {mediaList.length} / 5
+                    </span>
+                </div>
 
-                <label className={cn(
-                    "flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 rounded-2xl border cursor-pointer transition-colors",
-                    formulaireFar7i ? "bg-[#1E1E1E] border-[#1E1E1E] text-white" : "bg-white border-[#D4D2CF] text-[#1E1E1E]"
-                )}>
-                    <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", formulaireFar7i ? "bg-[#B79A63]" : "bg-[#F8F5F0]")}>
-                            <CheckCircle2 className={cn("w-5 h-5", formulaireFar7i ? "text-white" : "text-[#B79A63]")} />
-                        </div>
-                        <div>
-                            <span className="text-sm font-bold block">Messages Far7i (Recommandé)</span>
-                            <span className={cn("text-xs", formulaireFar7i ? "text-white/60" : "text-[#1E1E1E]/60")}>Recevez vos demandes directement via notre messagerie intégrée.</span>
-                        </div>
-                    </div>
-                    {/* Toggle Button Wrapper */}
-                    <div className={cn(
-                        "w-12 h-6 rounded-full p-1 transition-colors relative",
-                        formulaireFar7i ? "bg-[#B79A63]" : "bg-[#D4D2CF]"
-                    )}>
-                        <input type="checkbox" {...register("formulaire_far7i")} className="hidden" />
-                        <div className={cn("bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-200", formulaireFar7i ? "translate-x-6" : "")} />
-                    </div>
-                </label>
+                {errors.media && <p className="text-red-500 text-xs mb-4 p-3 bg-red-50 rounded-lg border border-red-200">{errors.media.message as string}</p>}
 
-                <div className="bg-[#F8F5F0] p-6 rounded-2xl border border-[#D4D2CF]">
-                    <Label className="text-sm font-bold text-[#1E1E1E] flex items-center gap-2 mb-2">
-                        <Phone className="w-4 h-4 text-[#B79A63]" /> Téléphone direct de réservation
-                    </Label>
-                    <GildedInput
-                        {...register("phone")}
-                        placeholder="Ex: 0555 12 34 56"
-                        className="max-w-xs bg-white"
-                        maxLength={20}
-                    />
-                    <p className="text-xs text-[#1E1E1E]/50 mt-2">Ce numéro s'affichera publiquement sur votre profil. Laissez vide si vous préférez être contacté uniquement via Far7i.</p>
+                {/* Grid Gallery */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    {mediaList.map((url: string, idx: number) => (
+                        <div key={idx} className={cn("relative group rounded-xl overflow-hidden bg-[#F8F5F0] border border-[#D4D2CF] aspect-[4/3]", idx === 0 && "col-span-2 row-span-2 aspect-auto h-full")}>
+                            <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                            {idx === 0 && (
+                                <div className="absolute top-2 left-2 bg-[#B79A63] text-white text-[10px] uppercase font-bold px-2 py-1 rounded shadow-sm">
+                                    Photo Principale
+                                </div>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => removeMedia(idx)}
+                                className="absolute top-2 right-2 w-8 h-8 bg-red-500/90 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-sm"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+
+                    {mediaList.length < 5 && (
+                        <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className={cn("border-2 border-dashed border-[#D4D2CF] rounded-xl flex flex-col items-center justify-center p-6 cursor-pointer hover:border-[#B79A63] hover:bg-[#B79A63]/5 transition-all text-[#1E1E1E]/40 hover:text-[#B79A63] aspect-[4/3]", uploading && "opacity-50 pointer-events-none")}
+                        >
+                            {uploading ? (
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-current" />
+                            ) : (
+                                <>
+                                    <UploadCloud className="w-8 h-8 mb-2" />
+                                    <span className="text-xs font-bold text-center">Ajouter une photo</span>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                />
+
+                <p className="text-xs text-[#1E1E1E]/60 text-center">La version Freemium vous permet de publier jusqu'à 5 photos de haute qualité.</p>
+            </div>
+
+            <div className="pt-8 border-t border-[#D4D2CF]">
+                <h3 className="text-lg font-serif font-bold text-[#1E1E1E] mb-4 flex items-center gap-2">
+                    <Smartphone className="w-5 h-5 text-[#B79A63]" /> Contacts & Réservations
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="border border-[#D4D2CF] p-6 rounded-2xl bg-white focus-within:border-[#B79A63] transition-all">
+                        <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Numéro de téléphone public (Optionnel)</label>
+                        <input
+                            type="tel"
+                            {...register("phone")}
+                            placeholder="05 XX XX XX XX"
+                            className="w-full h-12 px-4 rounded-xl border border-[#D4D2CF] bg-[#F8F5F0] text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] focus:bg-white transition-colors font-bold"
+                        />
+                        <p className="text-xs text-[#1E1E1E]/60 mt-2">S'il n'est pas rempli, les utilisateurs utiliseront uniquement la messagerie Far7i.</p>
+                    </div>
+
+                    <div className={cn("border p-6 rounded-2xl cursor-pointer transition-all flex flex-col justify-center", formulaire_far7i ? "border-[#B79A63] bg-[#B79A63]/5" : "border-[#D4D2CF] bg-white")} onClick={() => setValue("formulaire_far7i", !formulaire_far7i)}>
+                        <div className="flex items-center gap-3">
+                            <input type="checkbox" checked={formulaire_far7i} readOnly className="w-5 h-5 accent-[#B79A63] pointer-events-none" />
+                            <span className="text-sm font-bold text-[#1E1E1E]">Activer le formulaire de réservation intégré Far7i</span>
+                        </div>
+                        <p className="text-xs text-[#1E1E1E]/80 mt-2 ml-8">Hautement recommandé pour suivre vos demandes et votre trésorerie depuis l'application.</p>
+                    </div>
                 </div>
             </div>
         </div>

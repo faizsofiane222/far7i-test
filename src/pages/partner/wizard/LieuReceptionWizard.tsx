@@ -1,118 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { ChevronLeft, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { GildedButton } from "@/components/ui/gilded-button";
 
-// Steps Components
+import { lieuReceptionSchema, LieuReceptionFormValues } from "./schema";
 import IdentityStep from "./steps/IdentityStep";
 import CapacityStep from "./steps/CapacityStep";
 import ServicesStep from "./steps/ServicesStep";
 import PricingStep from "./steps/PricingStep";
 import MediaStep from "./steps/MediaStep";
-
-// 1. Strict Zod Schema definition
-const lieuReceptionSchema = z.object({
-    // Step 1: Identité
-    commercial_name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-    category_slug: z.string().default("lieu_de_reception"),
-    wilaya_id: z.string().min(1, "Veuillez sélectionner une wilaya"),
-    address: z.string().min(5, "L'adresse est requise"),
-    events_accepted: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
-    bio: z.string().optional(),
-
-    // Step 2: Capacités & Espaces
-    capacity_max: z.number().min(1, "La capacité maximale est requise"),
-    separated_spaces: z.boolean().default(false),
-    salle_femmes_cap: z.number().optional(),
-    salle_hommes_cap: z.number().optional(),
-    salle_mixte_cap: z.number().optional(), // Used as mirror of capacity_max if separated=false
-
-    // Espace Toggles
-    salle_dinatoire: z.boolean().default(false),
-    couverts_par_service: z.number().optional(),
-    jardin: z.boolean().default(false),
-    terrasse: z.boolean().default(false),
-    piscine: z.boolean().default(false),
-    parking: z.boolean().default(false),
-    parking_places: z.number().optional(),
-    loge_maries: z.boolean().default(false),
-    loge_maries_nb: z.number().optional(),
-    loge_invites: z.boolean().default(false),
-    loge_invites_nb: z.number().optional(),
-    salle_attente: z.boolean().default(false),
-
-    // Step 3: Services & Équipements
-    serveurs_mixte: z.boolean().default(false),
-    serveuses_femmes: z.boolean().default(false),
-    nettoyage_inclus: z.boolean().default(false),
-    securite_incluse: z.boolean().default(false),
-    piste_danse: z.boolean().default(false),
-    mobilier_inclus: z.boolean().default(false),
-    nappes_incluses: z.boolean().default(false),
-    climatisation: z.boolean().default(false),
-    chauffage: z.boolean().default(false),
-    ventilation: z.boolean().default(false),
-    acces_pmr: z.boolean().default(false),
-    sonorisation_base: z.boolean().default(false),
-    jeux_lumiere: z.boolean().default(false),
-    videoprojecteur: z.boolean().default(false),
-    dj_inclus: z.boolean().default(false),
-    animateur_inclus: z.boolean().default(false),
-    valet_inclus: z.boolean().default(false),
-    cameras_incluses: z.boolean().default(false),
-
-    // Restauration
-    traiteur_type: z.enum(["impose", "libre", "aucun"]).default("libre"),
-    cuisine_equipee: z.boolean().default(false),
-    vaisselle_incluse: z.boolean().default(false),
-    boissons_incluses: z.boolean().default(false), // Replaces eau/cafe/the/jus logic for simpler spec
-
-    // Step 4: Tarification
-    base_price: z.number().min(0, "Le prix ne peut être négatif"),
-    acompte_montant: z.number().min(0, "L'acompte ne peut être négatif"),
-    politique_annulation: z.string().optional(),
-    horaires_journee: z.boolean().default(false),
-    horaires_soiree: z.boolean().default(false),
-    horaires_nuit: z.boolean().default(false),
-    contraintes_regles: z.string().optional(),
-
-    // Step 5: Médias & Contact
-    media: z.array(z.string()).min(1, "Au moins une photo est requise").max(5, "Maximum 5 photos autorisées"),
-    formulaire_far7i: z.boolean().default(true),
-    phone: z.string().optional(),
-
-}).superRefine((data, ctx) => {
-    // Rule 2: If separated_spaces is true, salle_femmes + salle_hommes <= capacity_max
-    if (data.separated_spaces) {
-        const femmes = data.salle_femmes_cap || 0;
-        const hommes = data.salle_hommes_cap || 0;
-        if (femmes + hommes > data.capacity_max) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "La somme des capacités séparées dépasse la capacité globale",
-                path: ["salle_femmes_cap"],
-            });
-        }
-    }
-
-    // Rule 3: couverts_par_service <= capacity_max
-    if (data.salle_dinatoire && data.couverts_par_service !== undefined && data.couverts_par_service > data.capacity_max) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Les couverts ne peuvent pas dépasser la capacité maximale",
-            path: ["couverts_par_service"],
-        });
-    }
-});
-
-export type LieuReceptionFormValues = z.infer<typeof lieuReceptionSchema>;
 
 const STEPS = [
     { id: 1, title: "Identité" },
@@ -125,15 +26,15 @@ const STEPS = [
 export default function LieuReceptionWizard() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { id } = useParams();
     const [searchParams] = useSearchParams();
     const isOnboarding = searchParams.get("onboarding") === "true";
 
     const [currentStep, setCurrentStep] = useState(1);
-    const [providerId, setProviderId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [providerId, setProviderId] = useState<string | null>(id || null);
+    const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
 
-    // Initialize form with default structure
     const methods = useForm<LieuReceptionFormValues>({
         resolver: zodResolver(lieuReceptionSchema),
         mode: "onChange",
@@ -144,7 +45,8 @@ export default function LieuReceptionWizard() {
             address: "",
             events_accepted: [],
             bio: "",
-            capacity_max: 0,
+            capaciteMaximale: 0,
+            capaciteMinimale: 0,
             separated_spaces: false,
             salle_dinatoire: false,
             jardin: false,
@@ -154,42 +56,55 @@ export default function LieuReceptionWizard() {
             loge_maries: false,
             loge_invites: false,
             salle_attente: false,
-            serveurs_mixte: false,
-            serveuses_femmes: false,
-            nettoyage_inclus: false,
-            securite_incluse: false,
+            serveurs: false,
+            serveuses: false,
+            nettoyage: false,
+            securite: false,
             piste_danse: false,
-            mobilier_inclus: false,
-            nappes_incluses: false,
+            mobilier: false,
+            nappes: false,
             climatisation: false,
             chauffage: false,
             ventilation: false,
             acces_pmr: false,
-            sonorisation_base: false,
+            sonorisation: false,
             jeux_lumiere: false,
             videoprojecteur: false,
+            dj: false,
+            animateur: false,
+            valet: false,
+            cameras: false,
             traiteur_type: "libre",
-            base_price: 0,
-            acompte_montant: 0,
+            cuisine_equipee: false,
+            vaisselle: false,
+            boissons: false,
+            prixAPartirDeDA: 0,
+            acompteMontantDA: 0,
+            politique_annulation: "",
+            plages_horaires: [],
+            contraintes: "",
             media: [],
             formulaire_far7i: true,
             phone: ""
         }
     });
 
-    // Effect to load existing data safely
     useEffect(() => {
-        if (!user) return;
+        if (!user || !id) {
+            setLoading(false);
+            return;
+        }
 
-        // Simplistic load for drafting existing data
         const loadData = async () => {
             setLoading(true);
             try {
-                const { data: provider } = await supabase
+                const { data: provider, error } = await supabase
                     .from("providers")
                     .select("*, provider_venues(*), provider_media(*)")
-                    .eq("user_id", user.id)
+                    .eq("id", id)
                     .single();
+
+                if (error) throw error;
 
                 if (provider) {
                     setProviderId(provider.id);
@@ -202,17 +117,23 @@ export default function LieuReceptionWizard() {
                         address: provider.address || "",
                         events_accepted: provider.events_accepted || [],
                         bio: provider.bio || "",
-                        capacity_max: venue.capacity_max || 0,
+                        capaciteMaximale: venue.capacity_max || 0,
+                        capaciteMinimale: venue.capacity_min || 0,
                         separated_spaces: venue.separated_spaces || false,
-                        salle_femmes_cap: venue.salle_femmes_cap || 0,
-                        salle_hommes_cap: venue.salle_hommes_cap || 0,
+                        capaciteFemmes: venue.salle_femmes_cap || 0,
+                        capaciteHommes: venue.salle_hommes_cap || 0,
                         salle_dinatoire: venue.salle_dinatoire || false,
-                        couverts_par_service: venue.couverts_par_service || 0,
-                        // ... Mapping the rest of the attributes omitted for brevity, will map fully in saveDraft
-                        media
+                        couvertsParService: venue.couverts_par_service || 0,
+                        prixAPartirDeDA: Number(provider.base_price) || 0,
+                        acompteMontantDA: Number(venue.acompte_montant) || 0,
+                        politique_annulation: venue.politique_annulation || "",
+                        traiteur_type: venue.traiteur_type || "libre",
+                        media,
+                        phone: provider.phone_number || "",
+                        // Note: Other toggles can be mapped here similarly later. Defaulting to schema values for this scope context.
                     });
 
-                    // Calculate the step to resume based on the completeness of data
+                    // Resume step logic
                     let calculatedStep = 1;
                     if (provider.commercial_name && venue.capacity_max > 0) calculatedStep = 2;
                     if (calculatedStep === 2 && venue.traiteur_type) calculatedStep = 3;
@@ -230,7 +151,6 @@ export default function LieuReceptionWizard() {
         loadData();
     }, [user, methods]);
 
-    // "Draft Save" overrides strict validation simply by using getValues()
     const handleSaveDraft = async () => {
         const data = methods.getValues();
         setSaving(true);
@@ -245,22 +165,22 @@ export default function LieuReceptionWizard() {
     };
 
     const handleNext = async () => {
-        // Validate ONLY the fields relevant to the current step before advancing
-        let isValid = false;
+        let fieldsToValidate: any = [];
+        if (currentStep === 1) fieldsToValidate = ['commercial_name', 'wilaya_id', 'address', 'events_accepted'];
+        if (currentStep === 2) fieldsToValidate = ['capaciteMaximale', 'capaciteFemmes', 'capaciteHommes', 'couvertsParService'];
+        if (currentStep === 3) fieldsToValidate = [];
+        if (currentStep === 4) fieldsToValidate = ['prixAPartirDeDA', 'acompteMontantDA'];
+        if (currentStep === 5) fieldsToValidate = ['media'];
 
-        if (currentStep === 1) {
-            isValid = await methods.trigger(['commercial_name', 'wilaya_id', 'address', 'events_accepted']);
-        } else if (currentStep === 2) {
-            isValid = await methods.trigger(['capacity_max', 'salle_femmes_cap', 'salle_hommes_cap', 'couverts_par_service']);
-        } else if (currentStep === 3) {
-            isValid = true; // Mostly booleans
-        } else if (currentStep === 4) {
-            isValid = await methods.trigger(['base_price', 'acompte_montant']);
-        }
+        const isValid = await methods.trigger(fieldsToValidate);
 
         if (isValid) {
-            setCurrentStep((prev) => Math.min(prev + 1, 5));
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            if (currentStep < 5) {
+                setCurrentStep((prev) => prev + 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            } else {
+                onSubmit(methods.getValues());
+            }
         } else {
             toast.error("Veuillez corriger les erreurs avant de continuer.");
         }
@@ -269,6 +189,12 @@ export default function LieuReceptionWizard() {
     const onSubmit = async (data: LieuReceptionFormValues) => {
         setSaving(true);
         try {
+            const isValid = await methods.trigger();
+            if (!isValid) {
+                toast.error("Veuillez vérifier tous vos champs.");
+                setSaving(false);
+                return;
+            }
             await persistData(data, false);
             toast.success("Votre lieu de réception est en ligne !");
             navigate("/partner/dashboard");
@@ -279,10 +205,8 @@ export default function LieuReceptionWizard() {
         }
     };
 
-    // Internal common DB update loop
     const persistData = async (data: LieuReceptionFormValues, isDraft: boolean) => {
         let currentProviderId = providerId;
-
         const providerPayload = {
             commercial_name: data.commercial_name,
             category_slug: data.category_slug,
@@ -290,49 +214,37 @@ export default function LieuReceptionWizard() {
             address: data.address,
             events_accepted: data.events_accepted,
             bio: data.bio,
-            base_price: data.base_price,
-            phone_number: data.phone || "", // Fix for NOT NULL constraint
-            moderation_status: isDraft ? 'draft' : 'pending' // Fix: Correct column name for draft vs pending
+            base_price: data.prixAPartirDeDA,
+            phone_number: data.phone || "",
+            moderation_status: isDraft ? 'draft' : 'pending'
         };
 
         if (currentProviderId) {
             await supabase.from('providers').update(providerPayload).eq('id', currentProviderId).throwOnError();
         } else if (user) {
-            const { data: newProvider } = await supabase
-                .from('providers')
-                .insert({ user_id: user.id, ...providerPayload })
-                .select('id')
-                .single()
-                .throwOnError();
+            const { data: newProvider } = await supabase.from('providers').insert({ user_id: user.id, ...providerPayload }).select('id').single().throwOnError();
             currentProviderId = newProvider?.id;
             setProviderId(currentProviderId);
         }
 
         if (currentProviderId) {
-            // Map the venue data
-            const { error: venueError } = await supabase
-                .from('provider_venues')
-                .upsert({
-                    provider_id: currentProviderId,
-                    capacity_max: data.capacity_max,
-                    separated_spaces: data.separated_spaces,
-                    salle_femmes_cap: data.salle_femmes_cap,
-                    salle_hommes_cap: data.salle_hommes_cap,
-                    salle_mixte_cap: data.separated_spaces ? 0 : data.capacity_max, // Mirror logic
-                    salle_dinatoire: data.salle_dinatoire,
-                    couverts_par_service: data.couverts_par_service,
-                    acompte_montant: data.acompte_montant,
-                    politique_annulation: data.politique_annulation,
-                    // Toggles
-                    serveurs_mixte: data.serveurs_mixte,
-                    serveuses_femmes: data.serveuses_femmes,
-                    traiteur_type: data.traiteur_type
-                    // ... to be fully mapped in production
-                }, { onConflict: 'provider_id' });
+            await supabase.from('provider_venues').upsert({
+                provider_id: currentProviderId,
+                capacity_max: data.capaciteMaximale,
+                capacity_min: data.capaciteMinimale,
+                separated_spaces: data.separated_spaces,
+                salle_femmes_cap: data.capaciteFemmes,
+                salle_hommes_cap: data.capaciteHommes,
+                salle_mixte_cap: data.separated_spaces ? 0 : data.capaciteMaximale,
+                salle_dinatoire: data.salle_dinatoire,
+                couverts_par_service: data.couvertsParService,
+                acompte_montant: data.acompteMontantDA,
+                politique_annulation: data.politique_annulation,
+                serveurs_mixte: data.serveurs,
+                serveuses_femmes: data.serveuses,
+                traiteur_type: data.traiteur_type
+            }, { onConflict: 'provider_id' }).throwOnError();
 
-            if (venueError) console.error("Venue UPSERT error:", venueError);
-
-            // Update Media
             if (data.media && data.media.length > 0) {
                 await supabase.from('provider_media').delete().eq('provider_id', currentProviderId);
                 const mediaPayload = data.media.map((url, index) => ({
@@ -340,11 +252,10 @@ export default function LieuReceptionWizard() {
                     media_url: url,
                     is_main: index === 0
                 }));
-                await supabase.from('provider_media').insert(mediaPayload);
+                await supabase.from('provider_media').insert(mediaPayload).throwOnError();
             }
         }
     };
-
 
     if (loading) {
         return (
@@ -357,17 +268,14 @@ export default function LieuReceptionWizard() {
     return (
         <div className="min-h-screen bg-[#F8F5F0] py-12 px-4 font-lato">
             <div className="max-w-4xl mx-auto">
-
-                {/* Header & Visual Stepper */}
                 <div className="mb-10 text-center">
                     <h1 className="text-3xl font-serif font-bold text-[#1E1E1E]">Configuration de votre Lieu</h1>
-                    <p className="text-[#1E1E1E]/80 mt-2">Étape {currentStep} sur 5</p>
+                    <p className="text-[#1E1E1E]/80 mt-2">Étape {currentStep} sur {STEPS.length}</p>
 
                     <div className="flex justify-center items-center gap-4 mt-8">
                         {STEPS.map((step, idx) => {
                             const isActive = currentStep === step.id;
                             const isPast = currentStep > step.id;
-
                             return (
                                 <div key={step.id} className="flex items-center">
                                     <div className={cn(
@@ -390,11 +298,8 @@ export default function LieuReceptionWizard() {
                     </div>
                 </div>
 
-                {/* Wizard Form Content */}
                 <FormProvider {...methods}>
                     <form onSubmit={methods.handleSubmit(onSubmit)} className="bg-[#EBE6DA] rounded-2xl border border-[#D4D2CF] p-8 shadow-sm transition-all relative">
-
-                        {/* Steps Rendering */}
                         <div className="min-h-[400px]">
                             {currentStep === 1 && <IdentityStep />}
                             {currentStep === 2 && <CapacityStep />}
@@ -403,7 +308,6 @@ export default function LieuReceptionWizard() {
                             {currentStep === 5 && <MediaStep />}
                         </div>
 
-                        {/* Bottom Actions */}
                         <div className="pt-8 mt-8 border-t border-[#D4D2CF] flex items-center justify-between">
                             <button
                                 type="button"
@@ -415,33 +319,29 @@ export default function LieuReceptionWizard() {
                             </button>
 
                             <div className="flex gap-4">
-                                <GildedButton
+                                <button
                                     type="button"
-                                    variant="outline"
                                     onClick={handleSaveDraft}
                                     disabled={saving}
-                                    className="bg-transparent border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63]"
+                                    className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
                                 >
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                    {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                                     Sauvegarder le brouillon
-                                </GildedButton>
+                                </button>
 
-                                {currentStep < 5 ? (
-                                    <GildedButton type="button" onClick={handleNext}>
-                                        Suivant
-                                    </GildedButton>
-                                ) : (
-                                    <GildedButton type="submit" disabled={saving}>
-                                        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                        Soumettre
-                                    </GildedButton>
-                                )}
+                                <button
+                                    type="button"
+                                    disabled={saving}
+                                    onClick={handleNext}
+                                    className="px-6 py-2.5 rounded-full font-bold text-sm bg-[#1E1E1E] text-white hover:bg-[#B79A63] transition-all flex items-center"
+                                >
+                                    {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                                    {currentStep < 5 ? "Suivant" : "Soumettre"}
+                                </button>
                             </div>
                         </div>
-
                     </form>
                 </FormProvider>
-
             </div>
         </div>
     );
