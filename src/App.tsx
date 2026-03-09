@@ -22,6 +22,7 @@ import PartnerProfile from "./pages/partner/Profile";
 import PartnerServices from "./pages/partner/Services";
 import PartnerServiceEditor from "./pages/partner/ServiceEditor";
 import VenueEditor from "./pages/partner/VenueEditor";
+import LieuReceptionWizard from "./pages/partner/wizard/LieuReceptionWizard";
 import CateringEditor from "./pages/partner/CateringEditor";
 import DJOrchestraEditor from "./pages/partner/DJOrchestraEditor";
 import TraditionalMusicEditor from "./pages/partner/TraditionalMusicEditor";
@@ -100,8 +101,8 @@ const App = () => (
                 <Route path="/partner/dashboard/stats" element={<ProtectedRoute><PartnerDashboard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/profile" element={<ProtectedRoute><PartnerProfile /></ProtectedRoute>} />
                 {/* Specific Editors First */}
-                <Route path="/partner/dashboard/services/venues/new" element={<ProtectedRoute><VenueEditor isNewProp={true} /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/venues/:id/edit" element={<ProtectedRoute><VenueEditor isNewProp={false} /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/venues/new" element={<ProtectedRoute><LieuReceptionWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/venues/:id/edit" element={<ProtectedRoute><LieuReceptionWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/catering/new" element={<ProtectedRoute><CateringEditor isNewProp={true} /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/catering/:id/edit" element={<ProtectedRoute><CateringEditor isNewProp={false} /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/dj-orchestra/new" element={<ProtectedRoute><DJOrchestraEditor /></ProtectedRoute>} />
