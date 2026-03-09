@@ -242,7 +242,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
         if (slug === "lieu_de_reception") {
             navigate(`${basePath}/venues/new`);
         } else if (slug === "traiteur") {
-            navigate(`${basePath}/catering/new`);
+            navigate(`${basePath}/catering/wizard`);
         } else if (slug === "piece_montee_tartes") {
             navigate(`${basePath}/piece-montee/new`);
         } else if (slug === "gateau_traditionnel") {
