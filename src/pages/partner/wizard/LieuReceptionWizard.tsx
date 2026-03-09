@@ -211,6 +211,15 @@ export default function LieuReceptionWizard() {
                         // ... Mapping the rest of the attributes omitted for brevity, will map fully in saveDraft
                         media
                     });
+
+                    // Calculate the step to resume based on the completeness of data
+                    let calculatedStep = 1;
+                    if (provider.commercial_name && venue.capacity_max > 0) calculatedStep = 2;
+                    if (calculatedStep === 2 && venue.traiteur_type) calculatedStep = 3;
+                    if (calculatedStep === 3 && provider.base_price > 0) calculatedStep = 4;
+                    if (calculatedStep === 4 && media.length > 0) calculatedStep = 5;
+
+                    setCurrentStep(calculatedStep);
                 }
             } catch (error) {
                 console.error("Load error:", error);
@@ -283,7 +292,7 @@ export default function LieuReceptionWizard() {
             bio: data.bio,
             base_price: data.base_price,
             phone_number: data.phone || "", // Fix for NOT NULL constraint
-            status: isDraft ? 'draft' : 'pending' // Enforce validation status if applicable
+            moderation_status: isDraft ? 'draft' : 'pending' // Fix: Correct column name for draft vs pending
         };
 
         if (currentProviderId) {

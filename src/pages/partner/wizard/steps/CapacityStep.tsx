@@ -6,7 +6,7 @@ import { Users, Info, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function CapacityStep() {
-    const { register, watch, formState: { errors } } = useFormContext();
+    const { register, watch, setValue, formState: { errors } } = useFormContext();
 
     const maxCap = watch("capacity_max", 0);
     const separated = watch("separated_spaces", false);
@@ -48,14 +48,16 @@ export default function CapacityStep() {
                 </h2>
 
                 <div className="flex flex-col md:flex-row gap-6 mb-8">
-                    <label className="flex items-center gap-3 cursor-pointer group p-4 border rounded-xl flex-1 transition-all hover:border-[#B79A63]"
-                        style={{ borderColor: !separated ? "#B79A63" : "#D4D2CF", backgroundColor: !separated ? "#F8F5F0" : "transparent" }}>
+                    <label
+                        className="flex items-center gap-3 cursor-pointer group p-4 border rounded-xl flex-1 transition-all hover:border-[#B79A63]"
+                        style={{ borderColor: !separated ? "#B79A63" : "#D4D2CF", backgroundColor: !separated ? "#F8F5F0" : "transparent" }}
+                        onClick={() => setValue("separated_spaces", false)}
+                    >
                         <input
                             type="radio"
-                            {...register("separated_spaces")}
-                            value="false"
+                            readOnly
                             checked={!separated}
-                            className="w-5 h-5 accent-[#B79A63]"
+                            className="w-5 h-5 accent-[#B79A63] cursor-pointer"
                         />
                         <div>
                             <span className="text-sm font-bold text-[#1E1E1E] block">Salle unique</span>
@@ -63,14 +65,16 @@ export default function CapacityStep() {
                         </div>
                     </label>
 
-                    <label className="flex items-center gap-3 cursor-pointer group p-4 border rounded-xl flex-1 transition-all hover:border-[#B79A63]"
-                        style={{ borderColor: separated ? "#B79A63" : "#D4D2CF", backgroundColor: separated ? "#F8F5F0" : "transparent" }}>
+                    <label
+                        className="flex items-center gap-3 cursor-pointer group p-4 border rounded-xl flex-1 transition-all hover:border-[#B79A63]"
+                        style={{ borderColor: separated ? "#B79A63" : "#D4D2CF", backgroundColor: separated ? "#F8F5F0" : "transparent" }}
+                        onClick={() => setValue("separated_spaces", true)}
+                    >
                         <input
                             type="radio"
-                            {...register("separated_spaces")}
-                            value="true"
+                            readOnly
                             checked={separated}
-                            className="w-5 h-5 accent-[#B79A63]"
+                            className="w-5 h-5 accent-[#B79A63] cursor-pointer"
                         />
                         <div>
                             <span className="text-sm font-bold text-[#1E1E1E] block">Salles séparées</span>
