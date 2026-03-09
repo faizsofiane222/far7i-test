@@ -282,6 +282,7 @@ export default function LieuReceptionWizard() {
             events_accepted: data.events_accepted,
             bio: data.bio,
             base_price: data.base_price,
+            phone_number: data.phone || "", // Fix for NOT NULL constraint
             status: isDraft ? 'draft' : 'pending' // Enforce validation status if applicable
         };
 
