@@ -35,6 +35,7 @@ import LocationTenuesEditor from "./pages/partner/LocationTenuesEditor";
 import CoiffureBeauteEditor from "./pages/partner/CoiffureBeauteEditor";
 import LocationVoitureEditor from "./pages/partner/LocationVoitureEditor";
 import PhotographerEditor from "./pages/partner/PhotographerEditor";
+import PhotographeWizard from "./pages/partner/wizard/PhotographeWizard";
 import OnboardingWizard from "./pages/partner/OnboardingWizard";
 import Messaging from "./pages/partner/Messaging";
 import PartnerSettings from "./pages/partner/Settings";
@@ -126,8 +127,10 @@ const App = () => (
                 <Route path="/partner/dashboard/services/coiffure-beaute/:id/edit" element={<ProtectedRoute><CoiffureBeauteEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/location-voiture/new" element={<ProtectedRoute><LocationVoitureEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/location-voiture/:id/edit" element={<ProtectedRoute><LocationVoitureEditor /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/photographer/new" element={<ProtectedRoute><PhotographerEditor /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/photographer/:id/edit" element={<ProtectedRoute><PhotographerEditor /></ProtectedRoute>} />
+                {/* <Route path="/partner/dashboard/services/photographer/new" element={<ProtectedRoute><PhotographerEditor /></ProtectedRoute>} /> */}
+                {/* <Route path="/partner/dashboard/services/photographer/:id/edit" element={<ProtectedRoute><PhotographerEditor /></ProtectedRoute>} /> */}
+                <Route path="/partner/dashboard/services/photographer/wizard" element={<ProtectedRoute><PhotographeWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/photographer/wizard/:id" element={<ProtectedRoute><PhotographeWizard /></ProtectedRoute>} />
 
                 {/* Generic Routes After */}
                 <Route path="/partner/dashboard/services" element={<ProtectedRoute><PartnerServices /></ProtectedRoute>} />

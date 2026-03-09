@@ -262,7 +262,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
         } else if (slug === "animation_musicale_traditionnelle") {
             navigate(`${basePath}/traditional-music/new`);
         } else if (slug === "photographe") {
-            navigate(`${basePath}/photographer/new`);
+            navigate(`${basePath}/photographer/wizard`);
         } else {
             navigate(`${basePath}/new?category=${slug}`);
         }
