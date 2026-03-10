@@ -25,9 +25,7 @@ import VenueEditor from "./pages/partner/VenueEditor";
 import LieuReceptionWizard from "./pages/partner/wizard/LieuReceptionWizard";
 import TraiteurWizard from "./pages/partner/wizard/TraiteurWizard";
 import CateringEditor from "./pages/partner/CateringEditor";
-import DJOrchestraEditor from "./pages/partner/DJOrchestraEditor";
 import AnimationTraditionnelleWizard from "./pages/partner/wizard/AnimationTraditionnelleWizard";
-import TraditionalMusicEditor from "./pages/partner/TraditionalMusicEditor";
 import PieceMonteeEditor from "./pages/partner/PieceMonteeEditor";
 import GateauTradEditor from "./pages/partner/GateauTradEditor";
 import PatisserieSalesEditor from "./pages/partner/PatisserieSalesEditor";
@@ -116,8 +114,8 @@ const App = () => (
                 <Route path="/partner/dashboard/services/dj-orchestra/wizard/:id" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/wizard" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/wizard/:id" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/traditional-music/new" element={<ProtectedRoute><TraditionalMusicEditor /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/traditional-music/:id/edit" element={<ProtectedRoute><TraditionalMusicEditor /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/traditional-music/new" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/traditional-music/:id/edit" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/piece-montee/new" element={<ProtectedRoute><PieceMonteeEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/piece-montee/:id/edit" element={<ProtectedRoute><PieceMonteeEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/gateau-trad/new" element={<ProtectedRoute><GateauTradEditor /></ProtectedRoute>} />
