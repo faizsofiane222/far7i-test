@@ -26,7 +26,7 @@ import LieuReceptionWizard from "./pages/partner/wizard/LieuReceptionWizard";
 import TraiteurWizard from "./pages/partner/wizard/TraiteurWizard";
 import CateringEditor from "./pages/partner/CateringEditor";
 import AnimationTraditionnelleWizard from "./pages/partner/wizard/AnimationTraditionnelleWizard";
-import PieceMonteeEditor from "./pages/partner/PieceMonteeEditor";
+import PatisserieWizard from "./pages/partner/wizard/PatisserieWizard";
 import GateauTradEditor from "./pages/partner/GateauTradEditor";
 import PatisserieSalesEditor from "./pages/partner/PatisserieSalesEditor";
 import HabilleusEditor from "./pages/partner/HabilleusEditor";
@@ -116,8 +116,10 @@ const App = () => (
                 <Route path="/partner/dashboard/services/traditional-music/wizard/:id" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/new" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/:id/edit" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/piece-montee/new" element={<ProtectedRoute><PieceMonteeEditor /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/piece-montee/:id/edit" element={<ProtectedRoute><PieceMonteeEditor /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/piece-montee/wizard" element={<ProtectedRoute><PatisserieWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/piece-montee/wizard/:id" element={<ProtectedRoute><PatisserieWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/piece-montee/new" element={<ProtectedRoute><PatisserieWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/piece-montee/:id/edit" element={<ProtectedRoute><PatisserieWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/gateau-trad/new" element={<ProtectedRoute><GateauTradEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/gateau-trad/:id/edit" element={<ProtectedRoute><GateauTradEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/patisserie-sales/new" element={<ProtectedRoute><PatisserieSalesEditor /></ProtectedRoute>} />

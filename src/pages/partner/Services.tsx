@@ -244,7 +244,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
         } else if (slug === "traiteur") {
             navigate(`${basePath}/catering/wizard`);
         } else if (slug === "piece_montee_tartes") {
-            navigate(`${basePath}/piece-montee/new`);
+            navigate(`${basePath}/piece-montee/wizard`);
         } else if (slug === "gateau_traditionnel") {
             navigate(`${basePath}/gateau-trad/new`);
         } else if (slug === "patisserie_sales") {
@@ -445,7 +445,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (['traiteur', 'gateau_traditionnel', 'patisserie_sales'].includes(slug)) {
                                                 navigate(`${basePath}/catering/${service.id}/edit`);
                                             } else if (slug === "piece_montee_tartes") {
-                                                navigate(`${basePath}/piece-montee/${service.id}/edit`);
+                                                navigate(`${basePath}/piece-montee/wizard/${service.id}`);
                                             } else if (slug === "dj_orchestre") {
                                                 navigate(`${basePath}/dj-orchestra/wizard/${service.id}`);
                                             } else if (slug === "animation_musicale_traditionnelle") {
@@ -470,7 +470,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (slug === "traiteur") {
                                                 navigate(`${basePath}/catering/${service.id}/edit`);
                                             } else if (slug === "piece_montee_tartes") {
-                                                navigate(`${basePath}/piece-montee/${service.id}/edit`);
+                                                navigate(`${basePath}/piece-montee/wizard/${service.id}`);
                                             } else if (slug === "gateau_traditionnel") {
                                                 navigate(`${basePath}/gateau-trad/${service.id}/edit`);
                                             } else if (slug === "patisserie_sales") {
