@@ -130,14 +130,17 @@ export default function TraiteurWizard() {
                         utiliserFormulaireFar7i: true,
                     });
 
-                    // Resume step logic
-                    let calculatedStep = 1;
-                    if (provider.commercial_name && catering.min_guests > 0) calculatedStep = 2;
-                    if (calculatedStep === 2 && (catering.cuisine_types && catering.cuisine_types.length > 0)) calculatedStep = 3;
-                    if (calculatedStep === 3 && provider.base_price > 0) calculatedStep = 4;
-                    if (calculatedStep === 4 && media.length > 0) calculatedStep = 5;
-
-                    setCurrentStep(calculatedStep);
+                    if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
+                        setCurrentStep(provider.last_saved_step || 1);
+                    } else {
+                        // Resume step logic for backwards compatibility or pending
+                        let calculatedStep = 1;
+                        if (provider.commercial_name && catering.min_guests > 0) calculatedStep = 2;
+                        if (calculatedStep === 2 && (catering.cuisine_types && catering.cuisine_types.length > 0)) calculatedStep = 3;
+                        if (calculatedStep === 3 && provider.base_price > 0) calculatedStep = 4;
+                        if (calculatedStep === 4 && media.length > 0) calculatedStep = 5;
+                        setCurrentStep(calculatedStep);
+                    }
                 }
             } catch (error) {
                 console.error("Load error:", error);
@@ -209,12 +212,13 @@ export default function TraiteurWizard() {
             commercial_name: data.nom,
             category_slug: data.category_slug,
             wilaya_id: data.wilaya_id || null,
-            address: data.adresse,
+            address: typeof data.adresse === 'string' ? data.adresse : data.adresse.address,
             events_accepted: data.evenementsAccepte,
             bio: data.description,
             base_price: data.prixAPartirDeParPersonneDA,
             phone_number: data.telephone || "",
-            moderation_status: isDraft ? 'draft' : 'pending'
+            moderation_status: isDraft ? 'draft' : 'pending',
+            last_saved_step: isDraft ? currentStep : null
         };
 
         if (currentProviderId) {
@@ -324,15 +328,17 @@ export default function TraiteurWizard() {
                             </button>
 
                             <div className="flex gap-4">
-                                <button
-                                    type="button"
-                                    onClick={handleSaveDraft}
-                                    disabled={saving}
-                                    className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
-                                >
-                                    {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                    Sauvegarder le brouillon
-                                </button>
+                                {currentStep < STEPS.length && (
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveDraft}
+                                        disabled={saving}
+                                        className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
+                                    >
+                                        {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                                        Sauvegarder le brouillon
+                                    </button>
+                                )}
 
                                 <button
                                     type="button"
@@ -341,7 +347,7 @@ export default function TraiteurWizard() {
                                     className="px-6 py-2.5 rounded-full font-bold text-sm bg-[#1E1E1E] text-white hover:bg-[#B79A63] transition-all flex items-center"
                                 >
                                     {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                    {currentStep < 5 ? "Suivant" : "Soumettre"}
+                                    {currentStep < 5 ? "Suivant" : "Soumettre pour validation"}
                                 </button>
                             </div>
                         </div>

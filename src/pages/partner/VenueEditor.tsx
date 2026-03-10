@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { compressAndUpload } from "@/lib/image-utils";
 import { useWilayas } from "@/hooks/useWilayas";
+import GoogleMapsLocator from "@/components/ui/GoogleMapsLocator";
 
 // @ts-ignore
 import ReactQuill from 'react-quill';
@@ -96,8 +97,22 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
     // Core Provider Data
     const [providerId, setProviderId] = useState<string>("");
 
+    interface LocationData {
+        address: string;
+        lat: number | null;
+        lng: number | null;
+    }
+
+    interface BaseProviderData {
+        commercial_name: string;
+        category_slug: string;
+        wilaya_id: string;
+        address: LocationData | string;
+        events_accepted: string[];
+        bio: string;
+    }
     // Step 1 & 2: Base Provider Data
-    const [baseData, setBaseData] = useState({
+    const [baseData, setBaseData] = useState<BaseProviderData>({
         commercial_name: "",
         category_slug: "lieu_de_reception", // Default to venues
         wilaya_id: "",
@@ -179,6 +194,7 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
                 .select(`
                     id, commercial_name, category_slug, wilaya_id, address, 
                     events_accepted, bio, base_price,
+                    moderation_status, last_saved_step,
                     provider_venues (*),
                     provider_media (media_url, is_main)
                 `);
@@ -197,7 +213,7 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
                     commercial_name: provider.commercial_name || "",
                     category_slug: provider.category_slug || "lieu_de_reception",
                     wilaya_id: provider.wilaya_id || "",
-                    address: provider.address || "",
+                    address: provider.address || "", // Assuming address from DB is string or LocationData
                     events_accepted: provider.events_accepted || [],
                     bio: provider.bio || "",
                 });
@@ -214,6 +230,12 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
                 if (provider.provider_media) {
                     setMedia(provider.provider_media.map((m: any) => m.media_url));
                 }
+
+                if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
+                    setStep(provider.last_saved_step || 1);
+                } else {
+                    setStep(1); // Default to start for published/pending records
+                }
             } else {
                 // Determine category from URL if not existing
                 const categoryParam = searchParams.get('category_slug');
@@ -229,7 +251,12 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
         }
     };
 
-    const handleSave = async () => {
+    const handleSaveDraft = async () => {
+        if (!baseData.commercial_name.trim()) { toast.error("Le nom du lieu est requis"); setStep(1); return; }
+        await handleSave(true);
+    }
+
+    const handleSave = async (isDraft: boolean = false) => {
         if (!baseData.commercial_name.trim()) {
             toast.error("Le nom du lieu est requis");
             setStep(1);
@@ -246,10 +273,12 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
                 commercial_name: baseData.commercial_name,
                 category_slug: baseData.category_slug,
                 wilaya_id: baseData.wilaya_id || null,
-                address: baseData.address,
+                address: typeof baseData.address === 'string' ? baseData.address : baseData.address.address, // Save only the string address
                 events_accepted: baseData.events_accepted,
                 bio: baseData.bio,
-                base_price: venueData.base_price
+                base_price: venueData.base_price,
+                moderation_status: isDraft ? "draft" : "pending",
+                last_saved_step: isDraft ? step : null,
             };
 
             if (currentProviderId) {
@@ -344,14 +373,16 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
                 }
             }
 
-            toast.success("Lieu enregistré avec succès");
+            toast.success(isDraft ? "Brouillon sauvegardé" : "Lieu enregistré avec succès");
 
             // Si on vient de l'onboarding, l'inscription est TERMINEE !
-            if (isOnboarding) {
-                toast.success("Votre profil complet a été soumis ! Bienvenue sur Far7i 🎉");
-                navigate("/partner/dashboard");
-            } else {
-                navigate(basePath);
+            if (!isDraft) {
+                if (isOnboarding) {
+                    toast.success("Votre profil complet a été soumis ! Bienvenue sur Far7i 🎉");
+                    navigate("/partner/dashboard");
+                } else {
+                    navigate(basePath);
+                }
             }
         } catch (error: any) {
             console.error("Save error:", error);
@@ -462,12 +493,13 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
                                         {wilayas.map(w => <option key={w.id} value={w.id}>{w.code} - {w.name}</option>)}
                                     </select>
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label className="text-sm font-bold text-[#1E1E1E]">Adresse complète</Label>
-                                    <GildedInput
-                                        value={baseData.address}
-                                        onChange={e => setBaseData({ ...baseData, address: e.target.value })}
-                                        placeholder="Adresse exacte de la salle"
+                            </div>
+                            <div className="space-y-4">
+                                <Label className="text-sm font-bold text-[#1E1E1E]">Localisation exacte (Google Maps)</Label>
+                                <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-[#D4D2CF]">
+                                    <GoogleMapsLocator
+                                        value={typeof baseData.address === 'string' ? { address: baseData.address, lat: null, lng: null } : baseData.address}
+                                        onChange={(location) => setBaseData({ ...baseData, address: location })}
                                     />
                                 </div>
                             </div>
@@ -857,21 +889,24 @@ export default function VenueEditor({ providerIdProp, isNewProp }: { providerIdP
                     <div className="flex gap-4">
                         <GildedButton
                             variant="outline"
-                            onClick={() => handleSave()}
+                            onClick={handleSaveDraft}
                             disabled={saving}
                         >
-                            <Save className="w-5 h-5 mr-2" />
-                            Sauvegarder
+                            {saving ? <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> Sauvegarde...</> : <><Save className="w-5 h-5 mr-2" /> Brouillon</>}
                         </GildedButton>
                         <GildedButton
                             onClick={() => {
-                                if (step < 6) setStep(step + 1);
-                                else handleSave();
+                                if (step < 8) {
+                                    setStep(step + 1);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                } else {
+                                    handleSave(false);
+                                }
                             }}
                             disabled={saving}
                             className="gilded-glow"
                         >
-                            {step < 8 ? "Continuer" : "Terminer"}
+                            {saving && step === 8 ? <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> Soumission...</> : step < 8 ? "Suivant" : "Soumettre pour validation"}
                             {step < 8 && <ArrowRight className="w-5 h-5 ml-2" />}
                         </GildedButton>
                     </div>

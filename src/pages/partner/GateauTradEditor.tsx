@@ -120,7 +120,7 @@ export default function GateauTradEditor({ providerIdProp }: { providerIdProp?: 
         try {
             setLoading(true);
             const { data: p } = await supabase.from("providers")
-                .select(`id, commercial_name, wilaya_id, address, events_accepted, bio, base_price, travel_wilayas,
+                .select(`id, commercial_name, wilaya_id, address, events_accepted, bio, base_price, travel_wilayas, moderation_status, last_saved_step,
                     provider_media(media_url, is_main), provider_catering(product_types, delivery_options)`)
                 .eq("id", targetProviderId).maybeSingle();
 
@@ -152,6 +152,12 @@ export default function GateauTradEditor({ providerIdProp }: { providerIdProp?: 
                     const annPol = opts.find((o: string) => o.startsWith("annulation:"));
                     if (annPol) setPolitiqueAnnulation(annPol.replace("annulation:", ""));
                 }
+
+                if (p.moderation_status === "incomplete" || p.moderation_status === "draft") {
+                    setStep(p.last_saved_step || 1);
+                } else {
+                    setStep(1); // Default to start for published/pending records
+                }
             }
         } catch (err) { console.error(err); } finally { setLoading(false); }
     };
@@ -174,7 +180,12 @@ export default function GateauTradEditor({ providerIdProp }: { providerIdProp?: 
         return true;
     };
 
-    const handleSave = async () => {
+    const handleSaveDraft = async () => {
+        if (!commercialName.trim() || (!user && !adminMode)) { toast.error("Données manquantes"); setStep(1); return; }
+        await handleSave(true);
+    };
+
+    const handleSave = async (isDraft: boolean = false) => {
         if (!commercialName.trim() || (!user && !adminMode)) { toast.error("Données manquantes"); return; }
         try {
             setSaving(true);
@@ -188,7 +199,8 @@ export default function GateauTradEditor({ providerIdProp }: { providerIdProp?: 
                 bio: description,
                 base_price: basePrice || null,
                 travel_wilayas: livraisonPossible ? wilayasLivraison : [],
-                moderation_status: "pending",
+                moderation_status: isDraft ? "draft" : "pending",
+                last_saved_step: isDraft ? step : null,
             };
 
             if (currentProviderId) {
@@ -215,16 +227,21 @@ export default function GateauTradEditor({ providerIdProp }: { providerIdProp?: 
                 await supabase.from("provider_media").insert(media.map((m, i) => ({ provider_id: currentProviderId, media_url: m.url, is_main: i === 0 })));
             }
 
-            toast.success("Prestation enregistrée !");
-            navigate(basePath);
+            toast.success(isDraft ? "Brouillon sauvegardé" : "Prestation enregistrée !");
+            if (!isDraft) {
+                navigate(basePath);
+            }
         } catch (err: any) { toast.error(err.message || "Erreur"); } finally { setSaving(false); }
     };
 
     const handleNext = () => {
         if (validateStep()) {
-            if (step < STEPS.length) setStep(s => s + 1);
-            else handleSave();
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            if (step < STEPS.length) {
+                setStep(s => s + 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            } else {
+                handleSave(false);
+            }
         }
     };
 
@@ -504,12 +521,12 @@ export default function GateauTradEditor({ providerIdProp }: { providerIdProp?: 
                         {step === 1 ? "Retour" : "Précédent"}
                     </button>
                     <div className="flex gap-4">
-                        <GildedButton variant="outline" onClick={handleSave} disabled={saving}>
-                            <Save className="w-4 h-4 mr-2" /> Sauvegarder
+                        <GildedButton variant="outline" onClick={handleSaveDraft} disabled={saving}>
+                            {saving ? <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> Sauvegarde...</> : <><Save className="w-4 h-4 mr-2" /> Brouillon</>}
                         </GildedButton>
                         <GildedButton onClick={handleNext} disabled={saving} className="gap-2">
-                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                            {step < STEPS.length ? <>Continuer <ChevronRight className="w-4 h-4" /></> : "Terminer"}
+                            {saving && step === STEPS.length ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                            {step < STEPS.length ? <>Continuer <ChevronRight className="w-4 h-4" /></> : "Soumettre pour validation"}
                         </GildedButton>
                     </div>
                 </div>

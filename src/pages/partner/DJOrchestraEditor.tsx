@@ -134,7 +134,6 @@ export default function DJOrchestraEditor({ providerIdProp }: { providerIdProp?:
     const [cautionDemande, setCautionDemande] = useState(false);
     const [politiqueAnnulation, setPolitiqueAnnulation] = useState("");
 
-    // Step 10 — Avis (read only — loaded from reviews table)
     const [reviews, setReviews] = useState<any[]>([]);
     const [loadingReviews, setLoadingReviews] = useState(false);
 
@@ -152,6 +151,7 @@ export default function DJOrchestraEditor({ providerIdProp }: { providerIdProp?:
                 .from("providers")
                 .select(`
                     id, commercial_name, wilaya_id, address, events_accepted, bio, base_price,
+                    moderation_status, last_saved_step,
                     provider_media (media_url, is_main),
                     provider_music (is_dj, is_orchestra, music_styles, animation_options, equipment_options,
                         acompte_demande, caution_demande, politique_annulation)
@@ -186,6 +186,12 @@ export default function DJOrchestraEditor({ providerIdProp }: { providerIdProp?:
                     setCautionDemande(music.caution_demande || false);
                     setPolitiqueAnnulation(music.politique_annulation || "");
                 }
+
+                if (p.moderation_status === "incomplete" || p.moderation_status === "draft") {
+                    setStep(p.last_saved_step || 1);
+                } else {
+                    setStep(1); // Default to start for published/pending records
+                }
             }
         } catch (err) {
             console.error("Fetch error:", err);
@@ -215,7 +221,12 @@ export default function DJOrchestraEditor({ providerIdProp }: { providerIdProp?:
         return true;
     };
 
-    const handleSave = async () => {
+    const handleSaveDraft = async () => {
+        if (!commercialName.trim()) { toast.error("Le nom est requis"); setStep(1); return; }
+        await handleSave(true);
+    }
+
+    const handleSave = async (isDraft: boolean = false) => {
         if (!commercialName.trim()) { toast.error("Le nom est requis"); setStep(1); return; }
         if (!user && !adminMode) return;
 
@@ -232,7 +243,8 @@ export default function DJOrchestraEditor({ providerIdProp }: { providerIdProp?:
                 events_accepted: eventsAccepted,
                 bio: description,
                 base_price: basePrice || null,
-                moderation_status: "pending",
+                moderation_status: isDraft ? "draft" : "pending",
+                last_saved_step: isDraft ? step : null,
             };
 
             if (currentProviderId) {
@@ -276,8 +288,10 @@ export default function DJOrchestraEditor({ providerIdProp }: { providerIdProp?:
                 );
             }
 
-            toast.success("Prestation enregistrée !");
-            navigate(basePath);
+            toast.success(isDraft ? "Brouillon sauvegardé" : "Prestation enregistrée !");
+            if (!isDraft) {
+                navigate(basePath);
+            }
         } catch (err: any) {
             toast.error(err.message || "Erreur lors de l'enregistrement");
         } finally {
@@ -700,12 +714,15 @@ export default function DJOrchestraEditor({ providerIdProp }: { providerIdProp?:
                         {step === 1 ? "Retour" : "Précédent"}
                     </button>
                     <div className="flex gap-4">
-                        <GildedButton variant="outline" onClick={handleSave} disabled={saving}>
-                            <Save className="w-4 h-4 mr-2" /> Sauvegarder
-                        </GildedButton>
+                        {step < STEPS.length && (
+                            <GildedButton variant="outline" onClick={handleSaveDraft} disabled={saving}>
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                Sauvegarder le brouillon
+                            </GildedButton>
+                        )}
                         <GildedButton onClick={handleNext} disabled={saving} className="gap-2">
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                            {step < STEPS.length ? <>Continuer <ChevronRight className="w-4 h-4" /></> : "Terminer"}
+                            {step < STEPS.length ? <>Continuer <ChevronRight className="w-4 h-4" /></> : "Soumettre pour validation"}
                         </GildedButton>
                     </div>
                 </div>

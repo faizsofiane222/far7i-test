@@ -137,6 +137,12 @@ export default function LocationTenuesWizard() {
                     utiliserFormulaireFar7i: true,
                     telephone: provider.phone_number || "",
                 });
+
+                if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
+                    setStep(provider.last_saved_step || 1);
+                } else {
+                    setStep(1); // Default to start for published/pending records
+                }
             }
         } catch (error) {
             console.error("Error fetching provider:", error);
@@ -202,7 +208,8 @@ export default function LocationTenuesWizard() {
                 base_price: data.prixAPartirDeDAParTenue,
                 travel_wilayas: data.livraisonSurPlace ? data.wilayasLivraison : [],
                 phone_number: data.telephone || "",
-                moderation_status: isDraft ? "incomplete" : "pending",
+                moderation_status: isDraft ? "draft" : "pending",
+                last_saved_step: isDraft ? step : null,
             };
 
             if (currentProviderId) {
@@ -334,14 +341,16 @@ export default function LocationTenuesWizard() {
                                 </button>
 
                                 <div className="flex items-center gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={handleSaveDraft}
-                                        disabled={saving}
-                                        className="px-6 py-3 border border-[#D4D2CF] rounded-xl text-xs font-bold uppercase tracking-widest text-[#1E1E1E] bg-transparent hover:border-[#B79A63] transition-all disabled:opacity-50"
-                                    >
-                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sauvegarder le brouillon"}
-                                    </button>
+                                    {step < STEPS.length && (
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveDraft}
+                                            disabled={saving}
+                                            className="px-6 py-3 border border-[#D4D2CF] rounded-xl text-xs font-bold uppercase tracking-widest text-[#1E1E1E] bg-transparent hover:border-[#B79A63] transition-all disabled:opacity-50"
+                                        >
+                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sauvegarder le brouillon"}
+                                        </button>
+                                    )}
 
                                     <button
                                         type="button"
@@ -350,7 +359,7 @@ export default function LocationTenuesWizard() {
                                         className="min-w-[140px] px-6 py-3 rounded-xl bg-[#1E1E1E] text-[#F8F5F0] text-xs font-bold uppercase tracking-widest hover:bg-[#1E1E1E]/90 transition-all flex items-center justify-center"
                                     >
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin text-[#F8F5F0]" /> :
-                                            step === STEPS.length ? "Soumettre" :
+                                            step === STEPS.length ? "Soumettre pour validation" :
                                                 <span className="flex items-center gap-2">Suivant <ChevronRight className="w-4 h-4" /></span>}
                                     </button>
                                 </div>

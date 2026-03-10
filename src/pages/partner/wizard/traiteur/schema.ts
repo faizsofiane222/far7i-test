@@ -5,7 +5,7 @@ export const traiteurSchema = z.object({
     nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
     category_slug: z.string().default("traiteur"),
     wilaya_id: z.string().min(1, "Veuillez sélectionner une wilaya"),
-    adresse: z.string().optional(),
+    adresse: z.any().optional(), // Can be string or LocationData object from GoogleMapsLocator
     evenementsAccepte: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
     description: z.string().optional(),
 

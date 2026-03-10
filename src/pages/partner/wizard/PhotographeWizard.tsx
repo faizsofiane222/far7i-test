@@ -132,14 +132,19 @@ export default function PhotographeWizard() {
                         utiliserFormulaireFar7i: true,
                     });
 
-                    // Resume step logic based on required fields
-                    let calculatedStep = 1;
-                    if (provider.commercial_name && provider.events_accepted?.length > 0) calculatedStep = 2;
-                    if (calculatedStep === 2 && services.length > 0) calculatedStep = 3;
-                    if (calculatedStep === 3) calculatedStep = 4; // Step 3 has no strict required rules (just conditionals)
-                    if (calculatedStep === 4 && Number(provider.base_price) > 0) calculatedStep = 5;
-
-                    setCurrentStep(calculatedStep);
+                    if (provider.moderation_status === "incomplete") {
+                        setCurrentStep(provider.last_saved_step || 1);
+                    } else if (provider.moderation_status === "draft") {
+                        setCurrentStep(provider.last_saved_step || 1);
+                    } else {
+                        // For backwards compatibility or pending items
+                        let calculatedStep = 1;
+                        if (provider.commercial_name && provider.events_accepted?.length > 0) calculatedStep = 2;
+                        if (calculatedStep === 2 && services.length > 0) calculatedStep = 3;
+                        if (calculatedStep === 3) calculatedStep = 4;
+                        if (calculatedStep === 4 && Number(provider.base_price) > 0) calculatedStep = 5;
+                        setCurrentStep(calculatedStep);
+                    }
                 }
             } catch (error) {
                 console.error("Load error:", error);
@@ -220,7 +225,8 @@ export default function PhotographeWizard() {
             base_price: data.prixAPartirDeDA,
             travel_wilayas: travelWilayas,
             phone_number: data.telephone || "",
-            moderation_status: isDraft ? 'draft' : 'pending'
+            moderation_status: isDraft ? 'draft' : 'pending',
+            last_saved_step: isDraft ? currentStep : null
         };
 
         if (currentProviderId) {
@@ -333,15 +339,18 @@ export default function PhotographeWizard() {
                             </button>
 
                             <div className="flex gap-4">
-                                <button
-                                    type="button"
-                                    onClick={handleSaveDraft}
-                                    disabled={saving}
-                                    className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
-                                >
-                                    {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                    Sauvegarder le brouillon
-                                </button>
+                                { /* Hide Draft button on last step and require submission */}
+                                {currentStep < 5 && (
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveDraft}
+                                        disabled={saving}
+                                        className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
+                                    >
+                                        {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                                        Sauvegarder le brouillon
+                                    </button>
+                                )}
 
                                 <button
                                     type="button"
@@ -350,7 +359,7 @@ export default function PhotographeWizard() {
                                     className="px-6 py-2.5 rounded-full font-bold text-sm bg-[#1E1E1E] text-white hover:bg-[#B79A63] transition-all flex items-center"
                                 >
                                     {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                    {currentStep < 5 ? "Suivant" : "Soumettre"}
+                                    {currentStep < 5 ? "Suivant" : "Soumettre pour validation"}
                                 </button>
                             </div>
                         </div>

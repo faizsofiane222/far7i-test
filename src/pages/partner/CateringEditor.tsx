@@ -129,6 +129,7 @@ export default function CateringEditor({ isNewProp }: { isNewProp?: boolean }) {
                 .select(`
                     id, commercial_name, category_slug, wilaya_id, address, 
                     events_accepted, bio, base_price,
+                    moderation_status, last_saved_step,
                     provider_catering (*),
                     provider_media (media_url, is_main)
                 `)
@@ -157,6 +158,12 @@ export default function CateringEditor({ isNewProp }: { isNewProp?: boolean }) {
                 if (provider.provider_media) {
                     setMedia(provider.provider_media.map((m: any) => m.media_url));
                 }
+
+                if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
+                    setStep(provider.last_saved_step || 1);
+                } else {
+                    setStep(1); // Default to start for published/pending records
+                }
             }
         } catch (error: any) {
             console.error("Error fetching provider:", error);
@@ -165,7 +172,12 @@ export default function CateringEditor({ isNewProp }: { isNewProp?: boolean }) {
         }
     };
 
-    const handleSave = async (silent = false) => {
+    const handleSaveDraft = async () => {
+        if (!baseData.commercial_name.trim()) { toast.error("Le nom est obligatoire"); setStep(1); return; }
+        await handleSave(false, true);
+    }
+
+    const handleSave = async (silent = false, isDraft: boolean = false) => {
         if (!baseData.commercial_name.trim()) {
             toast.error("Le nom est obligatoire");
             return;
@@ -185,6 +197,8 @@ export default function CateringEditor({ isNewProp }: { isNewProp?: boolean }) {
                 events_accepted: baseData.events_accepted,
                 bio: baseData.bio,
                 base_price: cateringData.base_price,
+                moderation_status: isDraft ? "draft" : "pending",
+                last_saved_step: isDraft ? step : null,
             };
 
             if (currentProviderId) {
@@ -253,11 +267,13 @@ export default function CateringEditor({ isNewProp }: { isNewProp?: boolean }) {
             }
 
             if (!silent) {
-                toast.success("Offre enregistrée !");
-                if (isOnboarding) {
-                    navigate('/partner/dashboard?success=catering_ready');
-                } else {
-                    navigate('/partner/dashboard/services');
+                toast.success(isDraft ? "Brouillon sauvegardé" : "Offre enregistrée !");
+                if (!isDraft) {
+                    if (isOnboarding) {
+                        navigate('/partner/dashboard?success=catering_ready');
+                    } else {
+                        navigate('/partner/dashboard/services');
+                    }
                 }
             }
         } catch (error: any) {
@@ -606,12 +622,22 @@ export default function CateringEditor({ isNewProp }: { isNewProp?: boolean }) {
 
                 <div className="flex gap-4">
                     {step < 8 ? (
-                        <GildedButton onClick={() => { setStep(prev => prev + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="h-14 px-10 rounded-2xl shadow-xl hover:translate-x-1 duration-300">
-                            Suivant <ArrowRight className="w-5 h-5 ml-2" />
-                        </GildedButton>
+                        <>
+                            <GildedButton
+                                variant="outline"
+                                onClick={handleSaveDraft}
+                                disabled={saving}
+                                className="h-14 px-8 rounded-2xl shadow-xl"
+                            >
+                                {saving ? <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> Sauvegarde...</> : <><Save className="w-5 h-5 mr-2" /> Brouillon</>}
+                            </GildedButton>
+                            <GildedButton onClick={() => { setStep(prev => prev + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="h-14 px-10 rounded-2xl shadow-xl hover:translate-x-1 duration-300">
+                                Suivant <ArrowRight className="w-5 h-5 ml-2" />
+                            </GildedButton>
+                        </>
                     ) : (
                         <GildedButton onClick={() => handleSave()} disabled={saving} className="h-14 px-12 rounded-2xl bg-[#1E1E1E] text-white hover:bg-[#B79A63] shadow-xl">
-                            {saving ? <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> Sauvegarde...</> : <><Save className="w-5 h-5 mr-3" /> Enregistrer l'offre</>}
+                            {saving ? <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> Sauvegarde...</> : <><Save className="w-5 h-5 mr-3" /> Soumettre pour validation</>}
                         </GildedButton>
                     )}
                 </div>

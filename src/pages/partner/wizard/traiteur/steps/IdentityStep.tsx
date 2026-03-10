@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 import { useEventTypes } from "@/hooks/useEventTypes";
+import GoogleMapsLocator from "@/components/ui/GoogleMapsLocator";
 
 interface Wilaya {
     id: string;
@@ -87,19 +88,11 @@ export default function IdentityStep() {
 
                 <div>
                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Adresse de votre local / cuisine (Optionnel)</label>
-                    <input
-                        type="text"
-                        {...register("adresse")}
-                        placeholder="Ex: 15 Rue de l'Émir Abdelkader..."
-                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors mb-4", errors.adresse ? "border-red-500" : "border-[#D4D2CF]")}
-                    />
-
-                    {/* Mock Google Maps Picker */}
-                    <div className="w-full h-48 bg-[#F8F5F0] border border-[#D4D2CF] rounded-xl relative overflow-hidden flex flex-col items-center justify-center">
-                        <div className="absolute inset-0 opacity-20 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=algiers&zoom=12&size=600x300&key=MOCK')] bg-cover bg-center"></div>
-                        <MapPin className="w-8 h-8 text-[#B79A63] mb-2 z-10" />
-                        <p className="text-sm font-bold text-[#1E1E1E] z-10">Cliquer pour placer le repère</p>
-                        <p className="text-xs text-[#1E1E1E]/80 z-10 mt-1">Sert uniquement à rassurer vos futurs clients sur votre localisation.</p>
+                    <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-[#D4D2CF] mb-4">
+                        <GoogleMapsLocator
+                            value={typeof watch("adresse") === 'string' ? { address: watch("adresse"), lat: null, lng: null } : watch("adresse")}
+                            onChange={(location) => setValue("adresse", location, { shouldValidate: true })}
+                        />
                     </div>
                 </div>
 

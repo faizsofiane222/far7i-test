@@ -454,6 +454,7 @@ export type Database = {
           id: string
           is_viber_active: boolean | null
           is_whatsapp_active: boolean | null
+          last_saved_step: number | null
           moderation_status: string | null
           pending_changes: Json | null
           phone_number: string

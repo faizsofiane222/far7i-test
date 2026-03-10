@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEventTypes } from "@/hooks/useEventTypes";
 import { useWilayas } from "@/hooks/useWilayas";
 import { Label } from "@/components/ui/label";
+import GoogleMapsLocator from "@/components/ui/GoogleMapsLocator";
 
 
 interface Wilaya {
@@ -18,13 +19,13 @@ export default function IdentityStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
     const { wilayas, loading: loadingWilayas } = useWilayas();
     const { eventTypes, loading: loadingEvents } = useEventTypes();
-    const selectedEvents = watch("evenementsAccepte") || [];
+    const selectedEvents = watch("events_accepted") || [];
 
     const toggleEvent = (slug: string) => {
         if (selectedEvents.includes(slug)) {
-            setValue("evenementsAccepte", selectedEvents.filter((e: string) => e !== slug), { shouldValidate: true });
+            setValue("events_accepted", selectedEvents.filter((e: string) => e !== slug), { shouldValidate: true });
         } else {
-            setValue("evenementsAccepte", [...selectedEvents, slug], { shouldValidate: true });
+            setValue("events_accepted", [...selectedEvents, slug], { shouldValidate: true });
         }
     };
 
@@ -75,20 +76,12 @@ export default function IdentityStep() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Adresse exacte *</label>
-                    <input
-                        type="text"
-                        {...register("address")}
-                        placeholder="Ex: 15 Rue de l'Émir Abdelkader..."
-                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors mb-4", errors.address ? "border-red-500" : "border-[#D4D2CF]")}
-                    />
-
-                    {/* Mock Google Maps Picker */}
-                    <div className="w-full h-48 bg-[#F8F5F0] border border-[#D4D2CF] rounded-xl relative overflow-hidden flex flex-col items-center justify-center">
-                        <div className="absolute inset-0 opacity-20 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=algiers&zoom=12&size=600x300&key=MOCK')] bg-cover bg-center"></div>
-                        <MapPin className="w-8 h-8 text-[#B79A63] mb-2 z-10" />
-                        <p className="text-sm font-bold text-[#1E1E1E] z-10">Cliquer pour placer le repère</p>
-                        <p className="text-xs text-[#1E1E1E]/80 z-10 mt-1">La précision aide vos clients à vous trouver via GPS</p>
+                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Adresse exacte de la salle (Google Maps) *</label>
+                    <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-[#D4D2CF] mb-4">
+                        <GoogleMapsLocator
+                            value={typeof watch("address") === 'string' ? { address: watch("address"), lat: null, lng: null } : watch("address")}
+                            onChange={(location) => setValue("address", location, { shouldValidate: true })}
+                        />
                     </div>
                     {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message as string}</p>}
                 </div>
@@ -118,7 +111,7 @@ export default function IdentityStep() {
                             ))
                         )}
                     </div>
-                    {errors.evenementsAccepte && <p className="text-red-500 text-xs mt-2">{errors.evenementsAccepte.message as string}</p>}
+                    {errors.events_accepted && <p className="text-red-500 text-xs mt-2">{errors.events_accepted.message as string}</p>}
                 </div>
 
                 <div className="pt-4 border-t border-[#D4D2CF]">

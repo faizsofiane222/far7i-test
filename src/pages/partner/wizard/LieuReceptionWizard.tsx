@@ -133,14 +133,17 @@ export default function LieuReceptionWizard() {
                         // Note: Other toggles can be mapped here similarly later. Defaulting to schema values for this scope context.
                     });
 
-                    // Resume step logic
-                    let calculatedStep = 1;
-                    if (provider.commercial_name && venue.capacity_max > 0) calculatedStep = 2;
-                    if (calculatedStep === 2 && venue.traiteur_type) calculatedStep = 3;
-                    if (calculatedStep === 3 && provider.base_price > 0) calculatedStep = 4;
-                    if (calculatedStep === 4 && media.length > 0) calculatedStep = 5;
-
-                    setCurrentStep(calculatedStep);
+                    if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
+                        setCurrentStep(provider.last_saved_step || 1);
+                    } else {
+                        // For backwards compatibility or pending items
+                        let calculatedStep = 1;
+                        if (provider.commercial_name && venue.capacity_max > 0) calculatedStep = 2;
+                        if (calculatedStep === 2 && venue.traiteur_type) calculatedStep = 3;
+                        if (calculatedStep === 3 && provider.base_price > 0) calculatedStep = 4;
+                        if (calculatedStep === 4 && media.length > 0) calculatedStep = 5;
+                        setCurrentStep(calculatedStep);
+                    }
                 }
             } catch (error) {
                 console.error("Load error:", error);
@@ -211,12 +214,13 @@ export default function LieuReceptionWizard() {
             commercial_name: data.commercial_name,
             category_slug: data.category_slug,
             wilaya_id: data.wilaya_id || null,
-            address: data.address,
+            address: typeof data.address === 'string' ? data.address : data.address.address,
             events_accepted: data.events_accepted,
             bio: data.bio,
             base_price: data.prixAPartirDeDA,
             phone_number: data.phone || "",
-            moderation_status: isDraft ? 'draft' : 'pending'
+            moderation_status: isDraft ? 'draft' : 'pending',
+            last_saved_step: isDraft ? currentStep : null
         };
 
         if (currentProviderId) {
@@ -319,15 +323,17 @@ export default function LieuReceptionWizard() {
                             </button>
 
                             <div className="flex gap-4">
-                                <button
-                                    type="button"
-                                    onClick={handleSaveDraft}
-                                    disabled={saving}
-                                    className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
-                                >
-                                    {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                    Sauvegarder le brouillon
-                                </button>
+                                {currentStep < STEPS.length && (
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveDraft}
+                                        disabled={saving}
+                                        className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
+                                    >
+                                        {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                                        Sauvegarder le brouillon
+                                    </button>
+                                )}
 
                                 <button
                                     type="button"
@@ -336,7 +342,7 @@ export default function LieuReceptionWizard() {
                                     className="px-6 py-2.5 rounded-full font-bold text-sm bg-[#1E1E1E] text-white hover:bg-[#B79A63] transition-all flex items-center"
                                 >
                                     {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                    {currentStep < 5 ? "Suivant" : "Soumettre"}
+                                    {currentStep < 5 ? "Suivant" : "Soumettre pour validation"}
                                 </button>
                             </div>
                         </div>
