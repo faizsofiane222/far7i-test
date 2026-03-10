@@ -26,7 +26,7 @@ import LieuReceptionWizard from "./pages/partner/wizard/LieuReceptionWizard";
 import TraiteurWizard from "./pages/partner/wizard/TraiteurWizard";
 import CateringEditor from "./pages/partner/CateringEditor";
 import DJOrchestraEditor from "./pages/partner/DJOrchestraEditor";
-import AnimationMusicaleWizard from "./pages/partner/wizard/AnimationMusicaleWizard";
+import AnimationTraditionnelleWizard from "./pages/partner/wizard/AnimationTraditionnelleWizard";
 import TraditionalMusicEditor from "./pages/partner/TraditionalMusicEditor";
 import PieceMonteeEditor from "./pages/partner/PieceMonteeEditor";
 import GateauTradEditor from "./pages/partner/GateauTradEditor";
@@ -112,8 +112,10 @@ const App = () => (
                 <Route path="/partner/dashboard/services/catering/wizard/:id" element={<ProtectedRoute><TraiteurWizard /></ProtectedRoute>} />
                 {/* <Route path="/partner/dashboard/services/dj-orchestra/new" element={<ProtectedRoute><DJOrchestraEditor /></ProtectedRoute>} /> */}
                 {/* <Route path="/partner/dashboard/services/dj-orchestra/:id/edit" element={<ProtectedRoute><DJOrchestraEditor /></ProtectedRoute>} /> */}
-                <Route path="/partner/dashboard/services/dj-orchestra/wizard" element={<ProtectedRoute><AnimationMusicaleWizard /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/dj-orchestra/wizard/:id" element={<ProtectedRoute><AnimationMusicaleWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/dj-orchestra/wizard" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/dj-orchestra/wizard/:id" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/traditional-music/wizard" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/traditional-music/wizard/:id" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/new" element={<ProtectedRoute><TraditionalMusicEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/:id/edit" element={<ProtectedRoute><TraditionalMusicEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/piece-montee/new" element={<ProtectedRoute><PieceMonteeEditor /></ProtectedRoute>} />

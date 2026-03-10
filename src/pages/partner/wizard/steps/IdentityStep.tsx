@@ -3,15 +3,10 @@ import { useFormContext } from "react-hook-form";
 import { MapPin, Info, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useEventTypes } from "@/hooks/useEventTypes";
+import { useWilayas } from "@/hooks/useWilayas";
+import { Label } from "@/components/ui/label";
 
-const EVENT_TYPES = [
-    { id: "mariage", label: "Mariage" },
-    { id: "fiancailles", label: "Fiançailles" },
-    { id: "khetba", label: "Khetba" },
-    { id: "soutenance", label: "Soutenance" },
-    { id: "circoncision", label: "Circoncision (Thara)" },
-    { id: "anniversaire", label: "Anniversaire" },
-];
 
 interface Wilaya {
     id: string;
@@ -21,35 +16,15 @@ interface Wilaya {
 
 export default function IdentityStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
-    const events = watch("events_accepted") || [];
-    const [wilayas, setWilayas] = useState<Wilaya[]>([]);
-    const [loadingWilayas, setLoadingWilayas] = useState(true);
+    const { wilayas, loading: loadingWilayas } = useWilayas();
+    const { eventTypes, loading: loadingEvents } = useEventTypes();
+    const selectedEvents = watch("evenementsAccepte") || [];
 
-    useEffect(() => {
-        const fetchWilayas = async () => {
-            try {
-                const { data } = await supabase
-                    .from('wilayas')
-                    .select('id, name, code')
-                    .eq('active', true)
-                    .order('code');
-
-                if (data) setWilayas(data);
-            } catch (error) {
-                console.error("Error fetching wilayas:", error);
-            } finally {
-                setLoadingWilayas(false);
-            }
-        };
-
-        fetchWilayas();
-    }, []);
-
-    const handleEventToggle = (id: string) => {
-        if (events.includes(id)) {
-            setValue("events_accepted", events.filter((e: string) => e !== id), { shouldValidate: true });
+    const toggleEvent = (slug: string) => {
+        if (selectedEvents.includes(slug)) {
+            setValue("evenementsAccepte", selectedEvents.filter((e: string) => e !== slug), { shouldValidate: true });
         } else {
-            setValue("events_accepted", [...events, id], { shouldValidate: true });
+            setValue("evenementsAccepte", [...selectedEvents, slug], { shouldValidate: true });
         }
     };
 
@@ -118,29 +93,32 @@ export default function IdentityStep() {
                     {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message as string}</p>}
                 </div>
 
-                <div className="pt-4 border-t border-[#D4D2CF]">
-                    <label className="block text-sm font-bold text-[#1E1E1E] mb-4">Événements acceptés (Cochez) *</label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {EVENT_TYPES.map(event => {
-                            const isSelected = events.includes(event.id);
-                            return (
-                                <div
+                <div className="space-y-4">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-[#1E1E1E]">Types d'événements couverts *</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {loadingEvents ? (
+                            <div className="col-span-full flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#B79A63]" />
+                            </div>
+                        ) : (
+                            eventTypes.map(event => (
+                                <button
                                     key={event.id}
-                                    onClick={() => handleEventToggle(event.id)}
+                                    type="button"
+                                    onClick={() => toggleEvent(event.slug)}
                                     className={cn(
-                                        "px-4 py-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between text-sm font-bold",
-                                        isSelected
-                                            ? "border-[#B79A63] bg-[#B79A63]/10 text-[#B79A63]"
-                                            : "border-[#D4D2CF] bg-white text-[#1E1E1E] hover:border-[#B79A63]"
+                                        "p-4 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all text-center",
+                                        selectedEvents.includes(event.slug)
+                                            ? "bg-[#1E1E1E] border-[#1E1E1E] text-white"
+                                            : "bg-white border-[#D4D2CF] text-[#1E1E1E]/40 hover:border-[#B79A63]"
                                     )}
                                 >
-                                    <span>{event.label}</span>
-                                    {isSelected && <Check className="w-4 h-4" />}
-                                </div>
-                            );
-                        })}
+                                    {event.label}
+                                </button>
+                            ))
+                        )}
                     </div>
-                    {errors.events_accepted && <p className="text-red-500 text-xs mt-2">{errors.events_accepted.message as string}</p>}
+                    {errors.evenementsAccepte && <p className="text-red-500 text-xs mt-2">{errors.evenementsAccepte.message as string}</p>}
                 </div>
 
                 <div className="pt-4 border-t border-[#D4D2CF]">

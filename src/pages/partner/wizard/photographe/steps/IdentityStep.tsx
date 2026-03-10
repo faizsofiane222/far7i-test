@@ -4,15 +4,7 @@ import { MapPin, Info, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
-const EVENT_TYPES = [
-    { id: "mariage", label: "Mariage" },
-    { id: "fiancailles", label: "Fiançailles" },
-    { id: "naissance", label: "Naissance" },
-    { id: "circoncision", label: "Circoncision (Thara)" },
-    { id: "anniversaire", label: "Anniversaire" },
-    { id: "soutenance", label: "Soutenance" },
-    { id: "professionnel", label: "Événement Pro" },
-];
+import { useEventTypes } from "@/hooks/useEventTypes";
 
 interface Wilaya {
     id: string;
@@ -23,6 +15,7 @@ interface Wilaya {
 export default function IdentityStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
     const events = watch("evenementsAccepte") || [];
+    const { eventTypes, loading: loadingEvents } = useEventTypes();
     const [wilayas, setWilayas] = useState<Wilaya[]>([]);
     const [loadingWilayas, setLoadingWilayas] = useState(true);
 
@@ -112,24 +105,30 @@ export default function IdentityStep() {
                 <div className="pt-4 border-t border-[#D4D2CF]">
                     <label className="block text-sm font-bold text-[#1E1E1E] mb-4">Événements acceptés (Cochez) *</label>
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                        {EVENT_TYPES.map(event => {
-                            const isSelected = events.includes(event.id);
-                            return (
-                                <div
-                                    key={event.id}
-                                    onClick={() => handleEventToggle(event.id)}
-                                    className={cn(
-                                        "px-4 py-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between text-sm font-bold",
-                                        isSelected
-                                            ? "border-[#B79A63] bg-[#B79A63]/10 text-[#B79A63]"
-                                            : "border-[#D4D2CF] bg-white text-[#1E1E1E] hover:border-[#B79A63]"
-                                    )}
-                                >
-                                    <span>{event.label}</span>
-                                    {isSelected && <Check className="w-4 h-4" />}
-                                </div>
-                            );
-                        })}
+                        {loadingEvents ? (
+                            <div className="col-span-full flex items-center justify-center py-8">
+                                <Loader2 className="w-4 h-4 animate-spin text-[#B79A63]" />
+                            </div>
+                        ) : (
+                            eventTypes.map(event => {
+                                const isSelected = events.includes(event.slug);
+                                return (
+                                    <div
+                                        key={event.id}
+                                        onClick={() => handleEventToggle(event.slug)}
+                                        className={cn(
+                                            "px-4 py-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between text-sm font-bold",
+                                            isSelected
+                                                ? "border-[#B79A63] bg-[#B79A63]/10 text-[#B79A63]"
+                                                : "border-[#D4D2CF] bg-white text-[#1E1E1E] hover:border-[#B79A63]"
+                                        )}
+                                    >
+                                        <span>{event.label}</span>
+                                        {isSelected && <Check className="w-4 h-4" />}
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                     {errors.evenementsAccepte && <p className="text-red-500 text-xs mt-2">{errors.evenementsAccepte.message as string}</p>}
                 </div>

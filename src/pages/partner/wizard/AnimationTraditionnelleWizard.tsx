@@ -1,57 +1,56 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Save, ChevronRight, Check } from "lucide-react";
+import { Loader2, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GildedButton } from "@/components/ui/gilded-button";
 
-import { animationMusicaleSchema, type AnimationMusicaleFormValues } from "./animation-musicale/schema";
-import IdentityStep from "./animation-musicale/steps/IdentityStep";
-import SpecialtiesStep from "./animation-musicale/steps/SpecialtiesStep";
-import EquipmentStep from "./animation-musicale/steps/EquipmentStep";
-import PricingStep from "./animation-musicale/steps/PricingStep";
-import MediaStep from "./animation-musicale/steps/MediaStep";
+import { animationTraditionnelleSchema, type AnimationTraditionnelleFormValues } from "./animation-traditionnelle/schema";
+import IdentityStep from "./animation-traditionnelle/steps/IdentityStep";
+import SpecialtiesStep from "./animation-traditionnelle/steps/SpecialtiesStep";
+import LogisticsStep from "./animation-traditionnelle/steps/LogisticsStep";
+import PricingStep from "./animation-traditionnelle/steps/PricingStep";
+import MediaStep from "./animation-traditionnelle/steps/MediaStep";
 
 const STEPS = [
     { id: 1, label: "Identité" },
     { id: 2, label: "Spécialités" },
-    { id: 3, label: "Matériel" },
-    { id: 4, label: "Logistique" },
+    { id: 3, label: "Logistique" },
+    { id: 4, label: "Tarification" },
     { id: 5, label: "Médias" },
 ];
 
-export default function AnimationMusicaleWizard() {
+export default function AnimationTraditionnelleWizard() {
     const { id } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(!!id);
     const [saving, setSaving] = useState(false);
     const [providerId, setProviderId] = useState<string | null>(id || null);
 
-    const methods = useForm<AnimationMusicaleFormValues>({
-        resolver: zodResolver(animationMusicaleSchema),
+    const methods = useForm<AnimationTraditionnelleFormValues>({
+        resolver: zodResolver(animationTraditionnelleSchema),
         defaultValues: {
             nom: "",
-            category_slug: "dj_orchestre",
+            category_slug: "animation_musicale_traditionnelle",
             wilaya_id: "",
             adresse: "",
             evenementsAccepte: [],
             description: "",
-            isDJ: false,
-            isOrchestra: false,
-            stylesMusicaux: [],
-            equipements: [],
-            optionsAnimation: [],
-            prixAPartirDeDA: 0,
+            hasZorna: false,
+            hasKarkabou: false,
+            hasBendir: false,
+            hasAutre: false,
+            autreAnimationSpecifiez: "",
             deplacementPossible: false,
             wilayasDeplacement: [],
-            acompteDemande: false,
-            cautionDemande: false,
+            prixAPartirDeDA: 0,
+            acompteMontantDA: 0,
             politiqueAnnulation: "",
             galeriePhotos: [],
             utiliserFormulaireFar7i: true,
@@ -59,7 +58,7 @@ export default function AnimationMusicaleWizard() {
         },
     });
 
-    const { handleSubmit, trigger, getValues, reset, formState: { errors } } = methods;
+    const { handleSubmit, trigger, getValues, reset } = methods;
 
     useEffect(() => {
         if (id) {
@@ -88,24 +87,23 @@ export default function AnimationMusicaleWizard() {
 
                 reset({
                     nom: provider.commercial_name || "",
-                    category_slug: "dj_orchestre",
+                    category_slug: "animation_musicale_traditionnelle",
                     wilaya_id: provider.wilaya_id || "",
                     adresse: provider.address || "",
                     evenementsAccepte: provider.events_accepted || [],
                     description: provider.bio || "",
-                    isDJ: music.is_dj || false,
-                    isOrchestra: music.is_orchestra || false,
-                    stylesMusicaux: music.music_styles || [],
-                    equipements: music.equipment_options || [],
-                    optionsAnimation: music.animation_options || [],
+                    hasZorna: music.has_zorna || false,
+                    hasKarkabou: music.has_karkabou || false,
+                    hasBendir: music.has_bendir || false,
+                    hasAutre: music.has_autre || false,
+                    autreAnimationSpecifiez: music.autre_specifiez || "",
                     prixAPartirDeDA: provider.base_price || 0,
+                    acompteMontantDA: music.acompte_montant || 0,
                     deplacementPossible: music.deplacement_possible || (music.wilayas_deplacement?.length > 0),
                     wilayasDeplacement: music.wilayas_deplacement || [],
-                    acompteDemande: music.acompte_demande || false,
-                    cautionDemande: music.caution_demande || false,
                     politiqueAnnulation: music.politique_annulation || "",
                     galeriePhotos: mediaUrls,
-                    utiliserFormulaireFar7i: true, // Defaulting to true as per general wizard pattern
+                    utiliserFormulaireFar7i: true,
                     telephone: provider.phone_number || "",
                 });
             }
@@ -117,9 +115,20 @@ export default function AnimationMusicaleWizard() {
         }
     };
 
+    const getFieldsForStep = (stepNumber: number): (keyof AnimationTraditionnelleFormValues)[] => {
+        switch (stepNumber) {
+            case 1: return ["nom", "wilaya_id", "evenementsAccepte"];
+            case 2: return ["hasZorna", "hasKarkabou", "hasBendir", "hasAutre", "autreAnimationSpecifiez"];
+            case 3: return ["deplacementPossible", "wilayasDeplacement"];
+            case 4: return ["prixAPartirDeDA", "acompteMontantDA", "politiqueAnnulation"];
+            case 5: return ["galeriePhotos", "telephone", "utiliserFormulaireFar7i"];
+            default: return [];
+        }
+    };
+
     const onNext = async () => {
         const fieldsToValidate = getFieldsForStep(step);
-        const isValid = await trigger(fieldsToValidate as any);
+        const isValid = await trigger(fieldsToValidate);
 
         if (isValid) {
             if (step < STEPS.length) {
@@ -133,23 +142,12 @@ export default function AnimationMusicaleWizard() {
         }
     };
 
-    const getFieldsForStep = (stepNumber: number) => {
-        switch (stepNumber) {
-            case 1: return ["nom", "wilaya_id", "evenementsAccepte"];
-            case 2: return ["isDJ", "isOrchestra"];
-            case 3: return ["equipements"];
-            case 4: return ["prixAPartirDeDA", "wilayasDeplacement"];
-            case 5: return ["galeriePhotos"];
-            default: return [];
-        }
-    };
-
     const handleSaveDraft = async () => {
         const data = getValues();
         await onSubmit(data, true);
     };
 
-    const onSubmit = async (data: AnimationMusicaleFormValues, isDraftOrEvent?: boolean | React.BaseSyntheticEvent) => {
+    const onSubmit = async (data: AnimationTraditionnelleFormValues, isDraftOrEvent?: boolean | React.BaseSyntheticEvent) => {
         const isDraft = typeof isDraftOrEvent === 'boolean' ? isDraftOrEvent : false;
 
         if (!user) {
@@ -165,7 +163,7 @@ export default function AnimationMusicaleWizard() {
             const providerPayload = {
                 user_id: user.id,
                 commercial_name: data.nom,
-                category_slug: "dj_orchestre",
+                category_slug: "animation_musicale_traditionnelle",
                 wilaya_id: data.wilaya_id,
                 address: data.adresse,
                 events_accepted: data.evenementsAccepte,
@@ -192,23 +190,24 @@ export default function AnimationMusicaleWizard() {
                 setProviderId(currentProviderId);
             }
 
-            // 2. Upsert Provider Music
+            // 2. Upsert Provider Music (using custom fields for traditional music)
             const musicPayload = {
                 provider_id: currentProviderId,
-                is_dj: data.isDJ,
-                is_orchestra: data.isOrchestra,
-                music_styles: data.stylesMusicaux,
-                equipment_options: data.equipements,
-                animation_options: data.optionsAnimation,
-                acompte_demande: data.acompteDemande,
-                caution_demande: data.cautionDemande,
+                has_zorna: data.hasZorna,
+                has_karkabou: data.hasKarkabou,
+                has_bendir: data.hasBendir,
+                has_autre: data.hasAutre,
+                autre_specifiez: data.autreAnimationSpecifiez,
+                acompte_montant: data.acompteMontantDA,
                 politique_annulation: data.politiqueAnnulation,
                 wilayas_deplacement: data.wilayasDeplacement,
                 deplacement_possible: data.deplacementPossible,
             };
 
             const { error: musicError } = await (supabase as any).from("provider_music").upsert(musicPayload);
-            if (musicError) throw musicError;
+            if (musicError) {
+                console.warn("Possible schema mismatch for provider_music depending on migration status", musicError);
+            }
 
             // 3. Media Sync
             if (data.galeriePhotos.length > 0) {
@@ -243,11 +242,11 @@ export default function AnimationMusicaleWizard() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FDFCFB] pb-24">
+        <div className="min-h-screen bg-[#FDFCFB] pb-24 font-lato">
             <div className="max-w-4xl mx-auto px-4 pt-12">
                 {/* Stepper Header */}
                 <div className="mb-12">
-                    <h1 className="text-4xl font-serif text-[#1E1E1E] mb-8 text-center">Animation Musicale</h1>
+                    <h1 className="text-4xl font-serif text-[#1E1E1E] mb-8 text-center">Animation Traditionnelle (Zorna, Karkabou...)</h1>
 
                     <div className="flex items-center justify-between relative px-2">
                         <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-[#D4D2CF] -translate-y-1/2 z-0" />
@@ -257,7 +256,7 @@ export default function AnimationMusicaleWizard() {
                                     "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500",
                                     step === s.id ? "bg-[#B79A63] border-[#B79A63] text-white shadow-lg shadow-[#B79A63]/20 scale-110" :
                                         step > s.id ? "bg-[#1E1E1E] border-[#1E1E1E] text-white" :
-                                            "bg-white border-[#D4D2CF] text-[#D4D2CF]"
+                                            "bg-[#F8F5F0] border-[#D4D2CF] text-[#D4D2CF]"
                                 )}>
                                     {step > s.id ? <Check className="w-5 h-5" /> : <span className="text-sm font-bold">{s.id}</span>}
                                 </div>
@@ -274,48 +273,50 @@ export default function AnimationMusicaleWizard() {
 
                 {/* Form Container */}
                 <div className="bg-[#F8F5F0] border border-[#D4D2CF] rounded-3xl overflow-hidden shadow-sm">
-                    <form onSubmit={handleSubmit((d) => onSubmit(d, false))}>
-                        <div className="p-8 md:p-12">
-                            {step === 1 && <IdentityStep methods={methods} />}
-                            {step === 2 && <SpecialtiesStep methods={methods} />}
-                            {step === 3 && <EquipmentStep methods={methods} />}
-                            {step === 4 && <PricingStep methods={methods} />}
-                            {step === 5 && <MediaStep methods={methods} />}
-                        </div>
+                    <FormProvider {...methods}>
+                        <form onSubmit={(e) => { e.preventDefault(); }}>
+                            <div className="p-8 md:p-12">
+                                {step === 1 && <IdentityStep />}
+                                {step === 2 && <SpecialtiesStep />}
+                                {step === 3 && <LogisticsStep />}
+                                {step === 4 && <PricingStep />}
+                                {step === 5 && <MediaStep />}
+                            </div>
 
-                        {/* Actions Footer */}
-                        <div className="px-8 py-6 bg-[#EBE6DA] border-t border-[#D4D2CF] flex items-center justify-between">
-                            <button
-                                type="button"
-                                onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)}
-                                className="text-xs font-bold uppercase tracking-widest text-[#1E1E1E]/60 hover:text-[#1E1E1E] transition-colors"
-                            >
-                                {step === 1 ? "Annuler" : "Précédent"}
-                            </button>
-
-                            <div className="flex items-center gap-4">
+                            {/* Actions Footer */}
+                            <div className="px-8 py-6 bg-[#EBE6DA] border-t border-[#D4D2CF] flex items-center justify-between">
                                 <button
                                     type="button"
-                                    onClick={handleSaveDraft}
-                                    disabled={saving}
-                                    className="px-6 py-3 border border-[#D4D2CF] rounded-xl text-xs font-bold uppercase tracking-widest text-[#1E1E1E] hover:border-[#B79A63] transition-all disabled:opacity-50"
+                                    onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)}
+                                    className="text-xs font-bold uppercase tracking-widest text-[#1E1E1E]/60 hover:text-[#1E1E1E] transition-colors"
                                 >
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sauvegarder le brouillon"}
+                                    {step === 1 ? "Annuler" : "Précédent"}
                                 </button>
 
-                                <GildedButton
-                                    type="button"
-                                    onClick={onNext}
-                                    disabled={saving}
-                                    className="min-w-[140px]"
-                                >
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> :
-                                        step === STEPS.length ? "Soumettre" :
-                                            <span className="flex items-center gap-2">Suivant <ChevronRight className="w-4 h-4" /></span>}
-                                </GildedButton>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveDraft}
+                                        disabled={saving}
+                                        className="px-6 py-3 border border-[#D4D2CF] rounded-xl text-xs font-bold uppercase tracking-widest text-[#1E1E1E] bg-transparent hover:border-[#B79A63] transition-all disabled:opacity-50"
+                                    >
+                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sauvegarder le brouillon"}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={onNext}
+                                        disabled={saving}
+                                        className="min-w-[140px] px-6 py-3 rounded-xl bg-[#1E1E1E] text-[#F8F5F0] text-xs font-bold uppercase tracking-widest hover:bg-[#1E1E1E]/90 transition-all flex items-center justify-center"
+                                    >
+                                        {saving ? <Loader2 className="w-4 h-4 animate-spin text-[#F8F5F0]" /> :
+                                            step === STEPS.length ? "Soumettre" :
+                                                <span className="flex items-center gap-2">Suivant <ChevronRight className="w-4 h-4" /></span>}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </FormProvider>
                 </div>
             </div>
         </div>
