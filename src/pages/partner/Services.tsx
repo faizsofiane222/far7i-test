@@ -260,7 +260,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
         } else if (slug === "dj_orchestre") {
             navigate(`${basePath}/dj-orchestra/wizard`);
         } else if (slug === "animation_musicale_traditionnelle") {
-            navigate(`${basePath}/traditional-music/new`);
+            navigate(`${basePath}/traditional-music/wizard`);
         } else if (slug === "photographe") {
             navigate(`${basePath}/photographer/wizard`);
         } else {
@@ -449,7 +449,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (slug === "dj_orchestre") {
                                                 navigate(`${basePath}/dj-orchestra/wizard/${service.id}`);
                                             } else if (slug === "animation_musicale_traditionnelle") {
-                                                navigate(`${basePath}/traditional-music/${service.id}/edit`);
+                                                navigate(`${basePath}/traditional-music/wizard/${service.id}`);
                                             } else if (slug === "photographe") {
                                                 navigate(`${basePath}/photographer/${service.id}/edit`);
                                             } else {
@@ -486,7 +486,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (slug === "dj_orchestre") {
                                                 navigate(`${basePath}/dj-orchestra/wizard/${service.id}`);
                                             } else if (slug === "animation_musicale_traditionnelle") {
-                                                navigate(`${basePath}/traditional-music/${service.id}/edit`);
+                                                navigate(`${basePath}/traditional-music/wizard/${service.id}`);
                                             } else if (slug === "photographe") {
                                                 navigate(`${basePath}/photographer/${service.id}/edit`);
                                             } else {
