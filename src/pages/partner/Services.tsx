@@ -256,7 +256,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
         } else if (slug === "coiffure_beaute") {
             navigate(`${basePath}/coiffure-beaute/wizard`);
         } else if (slug === "location_voiture") {
-            navigate(`${basePath}/location-voiture/new`);
+            navigate(`${basePath}/location-voiture/wizard`);
         } else if (slug === "dj_orchestre") {
             navigate(`${basePath}/dj-orchestra/wizard`);
         } else if (slug === "animation_musicale_traditionnelle") {
@@ -482,7 +482,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (slug === "coiffure_beaute") {
                                                 navigate(`${basePath}/coiffure-beaute/wizard/${service.id}`);
                                             } else if (slug === "location_voiture") {
-                                                navigate(`${basePath}/location-voiture/${service.id}/edit`);
+                                                navigate(`${basePath}/location-voiture/wizard/${service.id}`);
                                             } else if (slug === "dj_orchestre") {
                                                 navigate(`${basePath}/dj-orchestra/wizard/${service.id}`);
                                             } else if (slug === "animation_musicale_traditionnelle") {
