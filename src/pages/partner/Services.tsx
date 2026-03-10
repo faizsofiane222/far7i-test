@@ -250,7 +250,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
         } else if (slug === "patisserie_sales") {
             navigate(`${basePath}/patisserie-sales/new`);
         } else if (slug === "habilleuse") {
-            navigate(`${basePath}/habilleuse/new`);
+            navigate(`${basePath}/habilleuse/wizard`);
         } else if (slug === "location_tenues") {
             navigate(`${basePath}/location-tenues/new`);
         } else if (slug === "coiffure_beaute") {
@@ -476,7 +476,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (slug === "patisserie_sales") {
                                                 navigate(`${basePath}/patisserie-sales/${service.id}/edit`);
                                             } else if (slug === "habilleuse") {
-                                                navigate(`${basePath}/habilleuse/${service.id}/edit`);
+                                                navigate(`${basePath}/habilleuse/wizard/${service.id}`);
                                             } else if (slug === "location_tenues") {
                                                 navigate(`${basePath}/location-tenues/${service.id}/edit`);
                                             } else if (slug === "coiffure_beaute") {

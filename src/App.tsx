@@ -29,7 +29,7 @@ import AnimationTraditionnelleWizard from "./pages/partner/wizard/AnimationTradi
 import PatisserieWizard from "./pages/partner/wizard/PatisserieWizard";
 import GateauTradEditor from "./pages/partner/GateauTradEditor";
 import PatisserieSalesEditor from "./pages/partner/PatisserieSalesEditor";
-import HabilleusEditor from "./pages/partner/HabilleusEditor";
+import HabilleuseWizard from "./pages/partner/wizard/HabilleuseWizard";
 import LocationTenuesEditor from "./pages/partner/LocationTenuesEditor";
 import CoiffureBeauteEditor from "./pages/partner/CoiffureBeauteEditor";
 import LocationVoitureEditor from "./pages/partner/LocationVoitureEditor";
@@ -124,8 +124,10 @@ const App = () => (
                 <Route path="/partner/dashboard/services/gateau-trad/:id/edit" element={<ProtectedRoute><GateauTradEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/patisserie-sales/new" element={<ProtectedRoute><PatisserieSalesEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/patisserie-sales/:id/edit" element={<ProtectedRoute><PatisserieSalesEditor /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/habilleuse/new" element={<ProtectedRoute><HabilleusEditor /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/habilleuse/:id/edit" element={<ProtectedRoute><HabilleusEditor /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/habilleuse/wizard" element={<ProtectedRoute><HabilleuseWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/habilleuse/wizard/:id" element={<ProtectedRoute><HabilleuseWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/habilleuse/new" element={<ProtectedRoute><HabilleuseWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/habilleuse/:id/edit" element={<ProtectedRoute><HabilleuseWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/location-tenues/new" element={<ProtectedRoute><LocationTenuesEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/location-tenues/:id/edit" element={<ProtectedRoute><LocationTenuesEditor /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/coiffure-beaute/new" element={<ProtectedRoute><CoiffureBeauteEditor /></ProtectedRoute>} />
