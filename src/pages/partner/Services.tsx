@@ -258,7 +258,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
         } else if (slug === "location_voiture") {
             navigate(`${basePath}/location-voiture/new`);
         } else if (slug === "dj_orchestre") {
-            navigate(`${basePath}/dj-orchestra/new`);
+            navigate(`${basePath}/dj-orchestra/wizard`);
         } else if (slug === "animation_musicale_traditionnelle") {
             navigate(`${basePath}/traditional-music/new`);
         } else if (slug === "photographe") {
@@ -447,7 +447,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (slug === "piece_montee_tartes") {
                                                 navigate(`${basePath}/piece-montee/${service.id}/edit`);
                                             } else if (slug === "dj_orchestre") {
-                                                navigate(`${basePath}/dj-orchestra/${service.id}/edit`);
+                                                navigate(`${basePath}/dj-orchestra/wizard/${service.id}`);
                                             } else if (slug === "animation_musicale_traditionnelle") {
                                                 navigate(`${basePath}/traditional-music/${service.id}/edit`);
                                             } else if (slug === "photographe") {
@@ -484,7 +484,7 @@ export default function Services({ providerIdProp }: { providerIdProp?: string }
                                             } else if (slug === "location_voiture") {
                                                 navigate(`${basePath}/location-voiture/${service.id}/edit`);
                                             } else if (slug === "dj_orchestre") {
-                                                navigate(`${basePath}/dj-orchestra/${service.id}/edit`);
+                                                navigate(`${basePath}/dj-orchestra/wizard/${service.id}`);
                                             } else if (slug === "animation_musicale_traditionnelle") {
                                                 navigate(`${basePath}/traditional-music/${service.id}/edit`);
                                             } else if (slug === "photographe") {
