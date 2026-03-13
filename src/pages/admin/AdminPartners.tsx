@@ -112,7 +112,7 @@ export default function AdminPartners() {
                         <div className="bg-white/50 backdrop-blur-sm border border-[#D4D2CF] rounded-2xl px-4 py-2 flex items-center gap-2 shadow-sm">
                             <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                             <span className="text-sm font-bold text-slate-700">
-                                {partners.reduce((acc, p) => acc + (p.prestations.some(pr => pr.status === 'pending') || p.profile.status === 'pending' ? 1 : 0), 0)} En attente
+                                {partners.reduce((acc, p) => acc + ((p.prestations?.some(pr => pr.status === 'pending') || p.profile?.status === 'pending') ? 1 : 0), 0)} En attente
                             </span>
                         </div>
                     </div>
@@ -156,8 +156,8 @@ export default function AdminPartners() {
                         filteredPartners.map((partner) => {
                             const isExpanded = expandedPartners[partner.user_id];
                             const pendingItems = [
-                                ...(partner.profile.status === 'pending' ? [{ type: 'profile', data: partner.profile }] : []),
-                                ...partner.prestations.filter(p => p.status === 'pending').map(p => ({ type: 'prestation', data: p }))
+                                ...(partner.profile?.status === 'pending' ? [{ type: 'profile', data: partner.profile }] : []),
+                                ...(partner.prestations?.filter(p => p.status === 'pending').map(p => ({ type: 'prestation', data: p })) || [])
                             ];
 
                             return (
@@ -245,7 +245,7 @@ export default function AdminPartners() {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-6">
-                                                        {getStatusBadge(partner.profile.status)}
+                                                        {partner.profile ? getStatusBadge(partner.profile.status) : <UnifiedBadge status="draft" size="sm">Incomplet</UnifiedBadge>}
                                                         <ChevronRight className="w-5 h-5 text-slate-300 group-hover/item:translate-x-1 group-hover/item:text-[#B79A63] transition-all" />
                                                     </div>
                                                 </div>
