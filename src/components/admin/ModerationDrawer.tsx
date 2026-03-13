@@ -5,6 +5,7 @@ import {
     Calendar, User, Briefcase, Camera, Info,
     Tag, ShieldCheck, Mail, Clock, CheckCircle,
     Store, Smartphone, Star, LayoutGrid, Heart,
+    CheckCircle2, XCircle, ChevronRight, Loader2, MessageSquare,
     Image as ImageIcon, ListChecks, DollarSign,
     Milestone, BadgeInfo
 } from "lucide-react";
@@ -31,13 +32,12 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
     const [rejectionReason, setRejectionReason] = React.useState("");
     const [showRejectionInput, setShowRejectionInput] = React.useState(false);
 
-    if (!item) return null;
-
-    const pendingUpdates = item.pending_updates;
-    const isNewCreation = !pendingUpdates && (item.status === 'pending' || item.status === 'incomplete');
+    const pendingUpdates = item?.pending_updates;
+    const isNewCreation = !pendingUpdates && (item?.status === 'pending' || item?.status === 'incomplete');
     const isModification = !!pendingUpdates;
 
     const handleApprove = async () => {
+        if (!item) return;
         try {
             setIsSubmitting(true);
             const tableName = type === 'profile' ? 'users' : (type === 'prestation' ? 'providers' : 'reviews');
@@ -282,7 +282,16 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                     {/* Content Scroll Area */}
                     <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
                         <div className="max-w-5xl mx-auto">
-                            {type === 'profile' ? <ProfileModerationView /> : <ServiceModerationView />}
+                            {!item ? (
+                                <div className="py-20 text-center space-y-4">
+                                    <Loader2 className="w-12 h-12 animate-spin text-[#B79A63] mx-auto" />
+                                    <p className="text-slate-500 font-serif italic text-lg">Préparation de la vue de modération...</p>
+                                </div>
+                            ) : type === 'profile' ? (
+                                <ProfileModerationView />
+                            ) : (
+                                <ServiceModerationView />
+                            )}
                         </div>
                     </div>
 

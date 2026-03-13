@@ -5,17 +5,19 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-    v_user_id UUID;
-    v_updates JSONB;
 BEGIN
     IF p_table = 'users' THEN
-        -- 1. Get the profile metadata (using correct column pending_updates)
+        -- 1. Get the profile metadata
         SELECT pending_updates, user_id INTO v_updates, v_user_id FROM public.users WHERE id = p_id;
         
-        -- Fallback: if not found by id, try matching p_id to user_id directly
+        -- Fallback 1: try matching p_id to user_id
         IF v_user_id IS NULL THEN
             SELECT pending_updates, user_id INTO v_updates, v_user_id FROM public.users WHERE user_id = p_id;
+        END IF;
+
+        -- Fallback 2: Direct assignment if still NULL (p_id IS the user_id)
+        IF v_user_id IS NULL THEN
+            v_user_id := p_id;
         END IF;
 
         -- 2. Update users status
@@ -23,6 +25,7 @@ BEGIN
         SET 
             status = 'approved', 
             pending_updates = NULL,
+            user_id = COALESCE(user_id, id), -- Ensure consistency
             updated_at = NOW()
         WHERE id = p_id OR user_id = p_id;
         
@@ -31,28 +34,31 @@ BEGIN
         SET 
             moderation_status = 'approved',
             status = 'approved',
-            commercial_name = COALESCE((pending_updates->>'commercial_name'), commercial_name),
-            bio = COALESCE((pending_updates->>'bio'), bio),
-            profile_picture_url = COALESCE((pending_updates->>'profile_picture_url'), profile_picture_url),
+            commercial_name = COALESCE((v_updates->>'commercial_name'), commercial_name),
+            bio = COALESCE((v_updates->>'bio'), bio),
+            profile_picture_url = COALESCE((v_updates->>'profile_picture_url'), profile_picture_url),
             wilaya_id = CASE 
-                WHEN (pending_updates->>'wilaya_id') IS NOT NULL AND (pending_updates->>'wilaya_id') <> '' 
-                THEN (pending_updates->>'wilaya_id')::uuid 
+                WHEN (v_updates->>'wilaya_id') IS NOT NULL AND (v_updates->>'wilaya_id') <> '' 
+                THEN (v_updates->>'wilaya_id')::uuid 
                 ELSE wilaya_id 
             END,
-            phone_number = COALESCE((pending_updates->>'phone_number'), phone_number),
-            social_link = COALESCE((pending_updates->>'social_link'), social_link),
+            phone_number = COALESCE((v_updates->>'phone_number'), phone_number),
+            social_link = COALESCE((v_updates->>'social_link'), social_link),
             provider_type = CASE 
-                WHEN (pending_updates->>'provider_type') IS NOT NULL AND (pending_updates->>'provider_type') <> '' 
-                THEN (pending_updates->>'provider_type')::provider_type 
+                WHEN (v_updates->>'provider_type') IS NOT NULL AND (v_updates->>'provider_type') <> '' 
+                THEN (v_updates->>'provider_type')::provider_type 
                 ELSE provider_type 
             END,
-            is_whatsapp_active = COALESCE((pending_updates->>'is_whatsapp_active')::boolean, is_whatsapp_active),
-            is_viber_active = COALESCE((pending_updates->>'is_viber_active')::boolean, is_viber_active),
+            is_whatsapp_active = COALESCE((v_updates->>'is_whatsapp_active')::boolean, is_whatsapp_active),
+            is_viber_active = COALESCE((v_updates->>'is_viber_active')::boolean, is_viber_active),
             pending_updates = NULL,
             updated_at = NOW()
         WHERE user_id = v_user_id;
 
     ELSIF p_table = 'providers' THEN
+        -- Get user_id first for sync
+        SELECT user_id, pending_updates INTO v_user_id, v_updates FROM public.providers WHERE id = p_id;
+
         -- Update specific provider
         UPDATE public.providers 
         SET 
@@ -79,9 +85,10 @@ BEGIN
             updated_at = NOW()
         WHERE id = p_id;
         
-        -- SYNC: Also ensure users status is approved if AT LEAST one provider is approved
-        SELECT user_id INTO v_user_id FROM public.providers WHERE id = p_id;
-        UPDATE public.users SET status = 'approved' WHERE user_id = v_user_id OR id = v_user_id;
+        -- SYNC: Ensure users status is approved
+        IF v_user_id IS NOT NULL THEN
+            UPDATE public.users SET status = 'approved' WHERE user_id = v_user_id OR id = v_user_id;
+        END IF;
 
     ELSIF p_table = 'reviews' THEN
         UPDATE public.reviews SET status = 'approved' WHERE id = p_id;

@@ -94,8 +94,9 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
     const [providerStatus, setProviderStatus] = useState<string>('incomplete');
     const [submitting, setSubmitting] = useState(false);
 
-    // Locked mode: lock when pending OR incomplete (unlocked only when approved or rejected)
-    const isLocked = !adminMode && (providerStatus === 'pending' || providerStatus === 'incomplete');
+    // Locked mode: lock ONLY when pending (under review)
+    // Incomplete, Approved, and Rejected should all be editable.
+    const isLocked = !adminMode && providerStatus === 'pending';
 
     useEffect(() => {
         fetchLookups();

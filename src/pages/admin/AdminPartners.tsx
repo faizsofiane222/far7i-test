@@ -233,7 +233,10 @@ export default function AdminPartners() {
                                                 
                                                 <div 
                                                     className="group/item flex items-center justify-between p-5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-[#F8F5F0] hover:border-[#B79A63]/30 transition-all cursor-pointer"
-                                                    onClick={() => setSelectedItem({ type: 'profile', data: partner.profile })}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedItem({ type: 'profile', data: partner.profile || { id: partner.user_id, display_name: partner.display_name, email: partner.email, status: 'incomplete' } });
+                                                    }}
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-blue-500 shadow-sm group-hover/item:shadow-md transition-all">
@@ -263,7 +266,10 @@ export default function AdminPartners() {
                                                         <div 
                                                             key={presta.id}
                                                             className="group/presta flex items-center justify-between p-5 rounded-2xl border border-slate-100 bg-white hover:bg-[#F8F5F0] hover:border-[#B79A63]/30 transition-all cursor-pointer shadow-sm hover:shadow-md"
-                                                            onClick={() => setSelectedItem({ type: 'prestation', data: presta, parentId: partner.user_id })}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedItem({ type: 'prestation', data: presta, parentId: partner.user_id });
+                                                            }}
                                                         >
                                                             <div className="flex items-center gap-4">
                                                                 <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-[#B79A63] border border-slate-100 transition-colors group-hover/presta:bg-white">
