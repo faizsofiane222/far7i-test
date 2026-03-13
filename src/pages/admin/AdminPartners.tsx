@@ -141,8 +141,9 @@ export default function AdminPartners() {
                                         const isExpanded = expandedRows[partner.user_id];
                                         // Check both 'status' (new column) AND 'moderation_status' (old column)
                                         const profilePending =
-                                            partner.profile?.status === 'pending' ||
-                                            partner.profile?.moderation_status === 'pending';
+                                            (partner.profile?.status === 'pending' ||
+                                                partner.profile?.moderation_status === 'pending') &&
+                                            partner.profile?.status !== 'approved';
                                         const prestaPending = partner.prestations?.filter(
                                             (p: any) => p.status === 'pending' || p.moderation_status === 'pending'
                                         ).length ?? 0;
@@ -215,7 +216,7 @@ export default function AdminPartners() {
                                                                             id: partner.user_id,
                                                                             display_name: partner.display_name,
                                                                             email: partner.email,
-                                                                            status: 'pending',
+                                                                            status: partner.profile?.status || 'pending',
                                                                         };
                                                                         setSelectedItem({ type: 'profile', data: profileData });
                                                                     }}
