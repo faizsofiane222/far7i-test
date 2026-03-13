@@ -7,14 +7,15 @@ SET search_path = public
 AS $$
 DECLARE
     v_user_id UUID;
+    v_updates JSONB;
 BEGIN
     IF p_table = 'users' THEN
-        -- 1. Get the user_id (Auth UUID)
-        SELECT user_id INTO v_user_id FROM public.users WHERE id = p_id;
+        -- 1. Get the profile metadata (using correct column pending_updates)
+        SELECT pending_updates, user_id INTO v_updates, v_user_id FROM public.users WHERE id = p_id;
         
         -- Fallback: if not found by id, try matching p_id to user_id directly
         IF v_user_id IS NULL THEN
-            v_user_id := p_id;
+            SELECT pending_updates, user_id INTO v_updates, v_user_id FROM public.users WHERE user_id = p_id;
         END IF;
 
         -- 2. Update users status
@@ -30,24 +31,24 @@ BEGIN
         SET 
             moderation_status = 'approved',
             status = 'approved',
-            commercial_name = COALESCE((pending_changes->>'commercial_name'), commercial_name),
-            bio = COALESCE((pending_changes->>'bio'), bio),
-            profile_picture_url = COALESCE((pending_changes->>'profile_picture_url'), profile_picture_url),
+            commercial_name = COALESCE((pending_updates->>'commercial_name'), commercial_name),
+            bio = COALESCE((pending_updates->>'bio'), bio),
+            profile_picture_url = COALESCE((pending_updates->>'profile_picture_url'), profile_picture_url),
             wilaya_id = CASE 
-                WHEN (pending_changes->>'wilaya_id') IS NOT NULL AND (pending_changes->>'wilaya_id') <> '' 
-                THEN (pending_changes->>'wilaya_id')::uuid 
+                WHEN (pending_updates->>'wilaya_id') IS NOT NULL AND (pending_updates->>'wilaya_id') <> '' 
+                THEN (pending_updates->>'wilaya_id')::uuid 
                 ELSE wilaya_id 
             END,
-            phone_number = COALESCE((pending_changes->>'phone_number'), phone_number),
-            social_link = COALESCE((pending_changes->>'social_link'), social_link),
+            phone_number = COALESCE((pending_updates->>'phone_number'), phone_number),
+            social_link = COALESCE((pending_updates->>'social_link'), social_link),
             provider_type = CASE 
-                WHEN (pending_changes->>'provider_type') IS NOT NULL AND (pending_changes->>'provider_type') <> '' 
-                THEN (pending_changes->>'provider_type')::provider_type 
+                WHEN (pending_updates->>'provider_type') IS NOT NULL AND (pending_updates->>'provider_type') <> '' 
+                THEN (pending_updates->>'provider_type')::provider_type 
                 ELSE provider_type 
             END,
-            is_whatsapp_active = COALESCE((pending_changes->>'is_whatsapp_active')::boolean, is_whatsapp_active),
-            is_viber_active = COALESCE((pending_changes->>'is_viber_active')::boolean, is_viber_active),
-            pending_changes = NULL,
+            is_whatsapp_active = COALESCE((pending_updates->>'is_whatsapp_active')::boolean, is_whatsapp_active),
+            is_viber_active = COALESCE((pending_updates->>'is_viber_active')::boolean, is_viber_active),
+            pending_updates = NULL,
             updated_at = NOW()
         WHERE user_id = v_user_id;
 
@@ -57,24 +58,24 @@ BEGIN
         SET 
             moderation_status = 'approved',
             status = 'approved',
-            commercial_name = COALESCE((pending_changes->>'commercial_name'), commercial_name),
-            bio = COALESCE((pending_changes->>'bio'), bio),
-            profile_picture_url = COALESCE((pending_changes->>'profile_picture_url'), profile_picture_url),
+            commercial_name = COALESCE((pending_updates->>'commercial_name'), commercial_name),
+            bio = COALESCE((pending_updates->>'bio'), bio),
+            profile_picture_url = COALESCE((pending_updates->>'profile_picture_url'), profile_picture_url),
             wilaya_id = CASE 
-                WHEN (pending_changes->>'wilaya_id') IS NOT NULL AND (pending_changes->>'wilaya_id') <> '' 
-                THEN (pending_changes->>'wilaya_id')::uuid 
+                WHEN (pending_updates->>'wilaya_id') IS NOT NULL AND (pending_updates->>'wilaya_id') <> '' 
+                THEN (pending_updates->>'wilaya_id')::uuid 
                 ELSE wilaya_id 
             END,
-            phone_number = COALESCE((pending_changes->>'phone_number'), phone_number),
-            social_link = COALESCE((pending_changes->>'social_link'), social_link),
+            phone_number = COALESCE((pending_updates->>'phone_number'), phone_number),
+            social_link = COALESCE((pending_updates->>'social_link'), social_link),
             provider_type = CASE 
-                WHEN (pending_changes->>'provider_type') IS NOT NULL AND (pending_changes->>'provider_type') <> '' 
-                THEN (pending_changes->>'provider_type')::provider_type 
+                WHEN (pending_updates->>'provider_type') IS NOT NULL AND (pending_updates->>'provider_type') <> '' 
+                THEN (pending_updates->>'provider_type')::provider_type 
                 ELSE provider_type 
             END,
-            is_whatsapp_active = COALESCE((pending_changes->>'is_whatsapp_active')::boolean, is_whatsapp_active),
-            is_viber_active = COALESCE((pending_changes->>'is_viber_active')::boolean, is_viber_active),
-            pending_changes = NULL,
+            is_whatsapp_active = COALESCE((pending_updates->>'is_whatsapp_active')::boolean, is_whatsapp_active),
+            is_viber_active = COALESCE((pending_updates->>'is_viber_active')::boolean, is_viber_active),
+            pending_updates = NULL,
             updated_at = NOW()
         WHERE id = p_id;
         
@@ -118,7 +119,7 @@ BEGIN
                         'provider_type', p_main.provider_type,
                         'phone_number', p_main.phone_number,
                         'social_link', p_main.social_link,
-                        'moderation_status', COALESCE(p_main.moderation_status, u.status, 'pending'), -- Sync with user status
+                        'moderation_status', COALESCE(u.status, p_main.moderation_status, 'pending'), -- Priority to user status
                         'is_whatsapp_active', p_main.is_whatsapp_active,
                         'is_viber_active', p_main.is_viber_active,
                         'wilaya_id', p_main.wilaya_id
@@ -183,3 +184,4 @@ BEGIN
     );
 END;
 $$;
+
