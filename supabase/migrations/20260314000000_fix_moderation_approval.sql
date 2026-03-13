@@ -1,4 +1,4 @@
--- Fix approve_moderation_item to sync status and apply changes
+-- Fix approve_moderation_item to sync status and apply changes (Trigger redeploy)
 CREATE OR REPLACE FUNCTION public.approve_moderation_item(p_table TEXT, p_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
