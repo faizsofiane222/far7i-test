@@ -35,6 +35,7 @@ import BeauteWizard from "./pages/partner/wizard/BeauteWizard";
 import LocationVoitureWizard from "./pages/partner/wizard/LocationVoitureWizard";
 import PhotographerEditor from "./pages/partner/PhotographerEditor";
 import PhotographeWizard from "./pages/partner/wizard/PhotographeWizard";
+import DJOrchestraWizard from "./pages/partner/wizard/DJOrchestraWizard";
 import OnboardingWizard from "./pages/partner/OnboardingWizard";
 import Messaging from "./pages/partner/Messaging";
 import PartnerSettings from "./pages/partner/Settings";
@@ -110,8 +111,8 @@ const App = () => (
                 <Route path="/partner/dashboard/services/catering/wizard/:id" element={<ProtectedRoute><TraiteurWizard /></ProtectedRoute>} />
                 {/* <Route path="/partner/dashboard/services/dj-orchestra/new" element={<ProtectedRoute><DJOrchestraEditor /></ProtectedRoute>} /> */}
                 {/* <Route path="/partner/dashboard/services/dj-orchestra/:id/edit" element={<ProtectedRoute><DJOrchestraEditor /></ProtectedRoute>} /> */}
-                <Route path="/partner/dashboard/services/dj-orchestra/wizard" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
-                <Route path="/partner/dashboard/services/dj-orchestra/wizard/:id" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/dj-orchestra/wizard" element={<ProtectedRoute><DJOrchestraWizard /></ProtectedRoute>} />
+                <Route path="/partner/dashboard/services/dj-orchestra/wizard/:id" element={<ProtectedRoute><DJOrchestraWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/wizard" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/wizard/:id" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />
                 <Route path="/partner/dashboard/services/traditional-music/new" element={<ProtectedRoute><AnimationTraditionnelleWizard /></ProtectedRoute>} />

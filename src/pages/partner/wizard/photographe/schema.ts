@@ -2,12 +2,12 @@ import * as z from "zod";
 
 export const photographeSchema = z.object({
     // Step 1: Identité
-    nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+    commercial_name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
     category_slug: z.string().default("photographe"),
     wilaya_id: z.string().min(1, "Veuillez sélectionner une wilaya"),
-    localisation: z.string().optional(),
-    evenementsAccepte: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
-    description: z.string().optional(),
+    address: z.any().optional(), // Updated to match Map Locator object
+    events_accepted: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
+    bio: z.string().optional(),
 
     // Step 2: Spécialités & Couverture
     isPhotographe: z.boolean().default(false),
@@ -19,19 +19,19 @@ export const photographeSchema = z.object({
 
     livrables: z.object({
         hasAlbums: z.boolean().default(false),
-        quantiteAlbums: z.number().optional(),
+        quantiteAlbums: z.coerce.number().optional(),
 
         hasAlbumsSupp: z.boolean().default(false),
-        quantiteAlbumsSupp: z.number().optional(),
+        quantiteAlbumsSupp: z.coerce.number().optional(),
 
         hasTirages: z.boolean().default(false),
-        quantiteTirages: z.number().optional(),
+        quantiteTirages: z.coerce.number().optional(),
 
         hasCadres: z.boolean().default(false),
-        quantiteCadres: z.number().optional(),
+        quantiteCadres: z.coerce.number().optional(),
 
         hasClesUSB: z.boolean().default(false),
-        quantiteClesUSB: z.number().optional(),
+        quantiteClesUSB: z.coerce.number().optional(),
 
         livraisonExpress: z.boolean().default(false),
         filmLong: z.boolean().default(false),
@@ -42,15 +42,15 @@ export const photographeSchema = z.object({
     deplacementPossible: z.boolean().default(false),
     wilayasDeplacement: z.array(z.string()).default([]),
 
-    prixAPartirDeDA: z.number().min(0, "Le prix ne peut être négatif"),
-    acompteMontantDA: z.number().optional(),
+    prixAPartirDeDA: z.coerce.number().min(0, "Le prix ne peut être négatif"),
+    acompteMontantDA: z.coerce.number().optional(),
     politiqueAnnulation: z.string().optional(),
-    delaisLivraisonSemaines: z.number().min(1, "Minimum 1 semaine de délai").default(4),
+    delaisLivraisonSemaines: z.coerce.number().min(1, "Minimum 1 semaine de délai").default(4),
 
     // Step 5: Médias & Contact
-    galeriePhotos: z.array(z.string()).min(1, "Au moins une photo principale est requise").max(5, "Maximum 5 photos autorisées"),
-    utiliserFormulaireFar7i: z.boolean().default(true),
-    telephone: z.string().optional(),
+    media: z.array(z.string()).min(1, "Au moins une photo principale est requise").max(5, "Maximum 5 photos autorisées"),
+    formulaire_far7i: z.boolean().default(true),
+    phone: z.string().optional(),
 }).superRefine((data, ctx) => {
     // 1. Photo OR Video must be checked
     if (!data.isPhotographe && !data.isVideaste) {

@@ -15,8 +15,8 @@ interface Wilaya {
 
 export default function IdentityStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
+    const selectedEvents = watch("events_accepted") || [];
     const { eventTypes, loading: loadingEvents } = useEventTypes();
-    const selectedEvents = watch("evenementsAccepte") || [];
     const [wilayas, setWilayas] = useState<Wilaya[]>([]);
     const [loadingWilayas, setLoadingWilayas] = useState(true);
 
@@ -42,9 +42,9 @@ export default function IdentityStep() {
 
     const toggleEvent = (slug: string) => {
         if (selectedEvents.includes(slug)) {
-            setValue("evenementsAccepte", selectedEvents.filter((e: string) => e !== slug), { shouldValidate: true });
+            setValue("events_accepted", selectedEvents.filter((e: string) => e !== slug), { shouldValidate: true });
         } else {
-            setValue("evenementsAccepte", [...selectedEvents, slug], { shouldValidate: true });
+            setValue("events_accepted", [...selectedEvents, slug], { shouldValidate: true });
         }
     };
 
@@ -60,12 +60,12 @@ export default function IdentityStep() {
                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Nom du traiteur / Établissement *</label>
                     <input
                         type="text"
-                        {...register("nom")}
-                        placeholder="Ex: Les Délices de Safia"
-                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors", errors.nom ? "border-red-500" : "border-[#D4D2CF]")}
+                        {...register("commercial_name")}
+                        placeholder="Ex: Traiteur D'Or"
+                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors", errors.commercial_name ? "border-red-500" : "border-[#D4D2CF]")}
                     />
                     <p className="text-xs text-[#1E1E1E]/80 mt-2">Le nom sous lequel les clients vous trouveront sur la plateforme.</p>
-                    {errors.nom && <p className="text-red-500 text-xs mt-1">{errors.nom.message as string}</p>}
+                    {errors.commercial_name && <p className="text-red-500 text-xs mt-1">{errors.commercial_name.message as string}</p>}
                 </div>
 
                 <div>
@@ -90,8 +90,8 @@ export default function IdentityStep() {
                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Adresse de votre local / cuisine (Optionnel)</label>
                     <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-[#D4D2CF] mb-4">
                         <GoogleMapsLocator
-                            value={typeof watch("adresse") === 'string' ? { address: watch("adresse"), lat: null, lng: null } : watch("adresse")}
-                            onChange={(location) => setValue("adresse", location, { shouldValidate: true })}
+                            value={typeof watch("address") === 'string' ? { address: watch("address"), lat: null, lng: null } : watch("address")}
+                            onChange={(location) => setValue("address", location, { shouldValidate: true })}
                         />
                     </div>
                 </div>
@@ -124,20 +124,18 @@ export default function IdentityStep() {
                             })
                         )}
                     </div>
-                    {errors.evenementsAccepte && <p className="text-red-500 text-xs mt-2">{errors.evenementsAccepte.message as string}</p>}
+                    {errors.events_accepted && <p className="text-red-500 text-xs mt-2">{errors.events_accepted.message as string}</p>}
                 </div>
 
                 <div className="pt-4 border-t border-[#D4D2CF]">
-                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Présentation globale</label>
+                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Description / Présentation du service</label>
+                    <p className="text-xs text-[#1E1E1E]/80 mb-3"><Info className="inline w-3 h-3 mr-1" /> Parlez de vos menus phares et de votre expérience.</p>
                     <textarea
-                        {...register("description")}
-                        rows={5}
+                        {...register("bio")}
+                        rows={4}
                         className="w-full p-4 rounded-xl border border-[#D4D2CF] bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors resize-none"
-                        placeholder="Racontez votre histoire, votre passion pour la gastronomie, votre approche des ingrédients naturels..."
+                        placeholder="Présentez votre service en quelques lignes..."
                     />
-                    <p className="text-xs text-[#1E1E1E]/80 mt-2 flex items-center gap-1">
-                        <Info className="w-4 h-4 text-[#B79A63] flex-shrink-0" /> Détaillez ce qui fait votre différence (expérience, certification halal stricte, originalité...).
-                    </p>
                 </div>
             </div>
         </div>

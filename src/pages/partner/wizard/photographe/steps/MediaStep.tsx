@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 export default function MediaStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
-    const mediaList = watch("galeriePhotos") || [];
-    const utiliserFormulaireFar7i = watch("utiliserFormulaireFar7i");
+    const mediaList = watch("media") || [];
+    const formulaire_far7i = watch("formulaire_far7i");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
@@ -25,7 +25,7 @@ export default function MediaStep() {
         // Simulate upload delay and mock image generation
         setTimeout(() => {
             const newMedia = Array.from(files).map(file => URL.createObjectURL(file));
-            setValue("galeriePhotos", [...mediaList, ...newMedia], { shouldValidate: true });
+            setValue("media", [...mediaList, ...newMedia], { shouldValidate: true });
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
         }, 1000);
@@ -33,7 +33,7 @@ export default function MediaStep() {
 
     const removeMedia = (indexToRemove: number) => {
         const updated = mediaList.filter((_: any, idx: number) => idx !== indexToRemove);
-        setValue("galeriePhotos", updated, { shouldValidate: true });
+        setValue("media", updated, { shouldValidate: true });
     };
 
     return (
@@ -53,7 +53,7 @@ export default function MediaStep() {
                     </span>
                 </div>
 
-                {errors.galeriePhotos && <p className="text-red-500 text-xs mb-4 p-3 bg-red-50 rounded-lg border border-red-200">{errors.galeriePhotos.message as string}</p>}
+                {errors.media && <p className="text-red-500 text-xs mb-4 p-3 bg-red-50 rounded-lg border border-red-200">{errors.media.message as string}</p>}
 
                 {/* Grid Gallery */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -114,16 +114,16 @@ export default function MediaStep() {
                         <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Numéro de téléphone public (Optionnel)</label>
                         <input
                             type="tel"
-                            {...register("telephone")}
+                            {...register("phone")}
                             placeholder="05 XX XX XX XX"
                             className="w-full h-12 px-4 rounded-xl border border-[#D4D2CF] bg-[#F8F5F0] text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] focus:bg-white transition-colors font-bold"
                         />
                         <p className="text-xs text-[#1E1E1E]/60 mt-2">S'il n'est pas rempli, les utilisateurs utiliseront uniquement la messagerie Far7i.</p>
                     </div>
 
-                    <div className={cn("border p-6 rounded-2xl cursor-pointer transition-all flex flex-col justify-center", utiliserFormulaireFar7i ? "border-[#B79A63] bg-[#B79A63]/5" : "border-[#D4D2CF] bg-white")} onClick={() => setValue("utiliserFormulaireFar7i", !utiliserFormulaireFar7i)}>
+                    <div className={cn("border p-6 rounded-2xl cursor-pointer transition-all flex flex-col justify-center", formulaire_far7i ? "border-[#B79A63] bg-[#B79A63]/5" : "border-[#D4D2CF] bg-white")} onClick={() => setValue("formulaire_far7i", !formulaire_far7i)}>
                         <div className="flex items-center gap-3">
-                            <input type="checkbox" checked={utiliserFormulaireFar7i} readOnly className="w-5 h-5 accent-[#B79A63] pointer-events-none" />
+                            <input type="checkbox" checked={formulaire_far7i} readOnly className="w-5 h-5 accent-[#B79A63] pointer-events-none" />
                             <span className="text-sm font-bold text-[#1E1E1E]">Activer le formulaire de réservation intégré Far7i</span>
                         </div>
                         <p className="text-xs text-[#1E1E1E]/80 mt-2 ml-8">Hautement recommandé pour suivre vos demandes et votre calendrier depuis l'application.</p>

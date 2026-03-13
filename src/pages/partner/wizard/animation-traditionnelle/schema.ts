@@ -1,12 +1,12 @@
 import * as z from "zod";
 
 export const animationTraditionnelleSchema = z.object({
-    nom: z.string().min(2, "Le nom est requis (minimum 2 caractères)"),
+    commercial_name: z.string().min(2, "Le nom est requis (minimum 2 caractères)"),
     category_slug: z.string().default("animation_musicale_traditionnelle"),
     wilaya_id: z.string().min(1, "La wilaya est requise"),
-    adresse: z.string(), // Maps pin typically returns an address or coords
-    evenementsAccepte: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
-    description: z.string().optional(),
+    address: z.any().optional(), // Updated to match Map Locator object
+    events_accepted: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
+    bio: z.string().optional(),
 
     hasZorna: z.boolean(),
     hasKarkabou: z.boolean(),
@@ -21,9 +21,9 @@ export const animationTraditionnelleSchema = z.object({
     acompteMontantDA: z.coerce.number().min(0).optional(),
     politiqueAnnulation: z.string().optional(),
 
-    galeriePhotos: z.array(z.string()).min(1, "La photo principale est requise").max(5, "Maximum 5 photos"),
-    utiliserFormulaireFar7i: z.boolean().default(true),
-    telephone: z.string().optional(),
+    media: z.array(z.string()).min(1, "La photo principale est requise").max(5, "Maximum 5 photos"),
+    formulaire_far7i: z.boolean().default(true),
+    phone: z.string().optional(),
 }).superRefine((data, ctx) => {
     // 1. At least one animation type
     const hasAnimation = data.hasZorna || data.hasKarkabou || data.hasBendir || data.hasAutre;

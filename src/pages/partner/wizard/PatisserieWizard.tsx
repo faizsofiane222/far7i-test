@@ -36,12 +36,12 @@ export default function PatisserieWizard() {
     const methods = useForm<PatisserieFormValues>({
         resolver: zodResolver(patisserieSchema),
         defaultValues: {
-            nom: "",
+            commercial_name: "",
             category_slug: "piece_montee_tartes",
             wilaya_id: "",
-            adresse: "",
-            evenementsAccepte: [],
-            description: "",
+            address: "",
+            events_accepted: [],
+            bio: "",
             produitsProposes: [],
             personnalisationPossible: false,
             optionsPersonnalisation: [],
@@ -51,9 +51,9 @@ export default function PatisserieWizard() {
             prixAPartirDeDAParPiece: 0,
             acompteMontantDA: 0,
             politiqueAnnulation: "",
-            galeriePhotos: [],
-            utiliserFormulaireFar7i: true,
-            telephone: "",
+            media: [],
+            formulaire_far7i: true,
+            phone: "",
         },
     });
 
@@ -101,12 +101,12 @@ export default function PatisserieWizard() {
                     .map(opt => opt.split(":")[1]);
 
                 reset({
-                    nom: provider.commercial_name || "",
+                    commercial_name: provider.commercial_name || "",
                     category_slug: "piece_montee_tartes",
                     wilaya_id: provider.wilaya_id || "",
-                    adresse: provider.address || "",
-                    evenementsAccepte: provider.events_accepted || [],
-                    description: provider.bio || "",
+                    address: provider.address || "",
+                    events_accepted: provider.events_accepted || [],
+                    bio: provider.bio || "",
                     produitsProposes: catering.product_types || [],
                     personnalisationPossible,
                     optionsPersonnalisation,
@@ -116,9 +116,9 @@ export default function PatisserieWizard() {
                     prixAPartirDeDAParPiece: provider.base_price || 0,
                     acompteMontantDA,
                     politiqueAnnulation,
-                    galeriePhotos: mediaUrls,
-                    utiliserFormulaireFar7i: true,
-                    telephone: provider.phone_number || "",
+                    media: mediaUrls,
+                    formulaire_far7i: true,
+                    phone: provider.phone_number || "",
                 });
 
                 if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
@@ -137,11 +137,11 @@ export default function PatisserieWizard() {
 
     const getFieldsForStep = (stepNumber: number): (keyof PatisserieFormValues)[] => {
         switch (stepNumber) {
-            case 1: return ["nom", "wilaya_id", "evenementsAccepte"];
+            case 1: return ["commercial_name", "wilaya_id", "events_accepted"];
             case 2: return ["produitsProposes"];
             case 3: return ["wilayasLivraison", "livraisonPossible"];
             case 4: return ["prixAPartirDeDAParPiece", "acompteMontantDA", "politiqueAnnulation"];
-            case 5: return ["galeriePhotos", "telephone", "utiliserFormulaireFar7i"];
+            case 5: return ["media", "phone", "formulaire_far7i"];
             default: return [];
         }
     };
@@ -182,15 +182,15 @@ export default function PatisserieWizard() {
             // 1. Upsert Provider
             const providerPayload = {
                 user_id: user.id,
-                commercial_name: data.nom,
+                commercial_name: data.commercial_name,
                 category_slug: "piece_montee_tartes",
                 wilaya_id: data.wilaya_id,
-                address: data.adresse,
-                events_accepted: data.evenementsAccepte,
-                bio: data.description,
+                address: typeof data.address === 'string' ? data.address : data.address.address,
+                events_accepted: data.events_accepted,
+                bio: data.bio,
                 base_price: data.prixAPartirDeDAParPiece,
                 travel_wilayas: data.livraisonPossible ? data.wilayasLivraison : [],
-                phone_number: data.telephone || "",
+                phone_number: data.phone || "",
                 moderation_status: isDraft ? "draft" : "pending",
                 last_saved_step: isDraft ? step : null,
             };
@@ -233,9 +233,9 @@ export default function PatisserieWizard() {
             }
 
             // 3. Media Sync
-            if (data.galeriePhotos.length > 0) {
+            if (data.media && data.media.length > 0) {
                 await supabase.from("provider_media").delete().eq("provider_id", currentProviderId);
-                const mediaPayload = data.galeriePhotos.map((url, i) => ({
+                const mediaPayload = data.media.map((url, i) => ({
                     provider_id: currentProviderId,
                     media_url: url,
                     is_main: i === 0,

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export default function MediaStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
-    const photos = watch("galeriePhotos") || [];
+    const photos = watch("media") || [];
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,7 +19,7 @@ export default function MediaStep() {
         }
 
         const newPhotos = files.map(file => URL.createObjectURL(file));
-        setValue("galeriePhotos", [...photos, ...newPhotos], { shouldValidate: true });
+        setValue("media", [...photos, ...newPhotos], { shouldValidate: true });
 
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
@@ -29,7 +29,7 @@ export default function MediaStep() {
     const removePhoto = (index: number) => {
         const newPhotos = [...photos];
         newPhotos.splice(index, 1);
-        setValue("galeriePhotos", newPhotos, { shouldValidate: true });
+        setValue("media", newPhotos, { shouldValidate: true });
     };
 
     return (
@@ -69,8 +69,8 @@ export default function MediaStep() {
                         </button>
                     </div>
 
-                    {errors.galeriePhotos && (
-                        <p className="text-red-500 text-xs mt-2">{errors.galeriePhotos.message as string}</p>
+                    {errors.media && (
+                        <p className="text-red-500 text-xs mt-2">{errors.media.message as string}</p>
                     )}
 
                     {photos.length > 0 && (
@@ -106,13 +106,13 @@ export default function MediaStep() {
                                 <input
                                     type="checkbox"
                                     className="sr-only peer"
-                                    {...register("utiliserFormulaireFar7i")}
+                                    {...register("formulaire_far7i")}
                                 />
                                 <div className="w-11 h-6 bg-[#D4D2CF] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#B79A63]"></div>
                             </label>
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-[#1E1E1E] mb-1 cursor-pointer" onClick={() => setValue("utiliserFormulaireFar7i", !watch("utiliserFormulaireFar7i"))}>
+                            <label className="block text-sm font-bold text-[#1E1E1E] mb-1 cursor-pointer" onClick={() => setValue("formulaire_far7i", !watch("formulaire_far7i"))}>
                                 Utiliser le formulaire de contact Far7i (Recommandé)
                             </label>
                             <p className="text-xs text-[#1E1E1E]/80">Les clients pourront vous contacter directement via la plateforme pour demander un devis ou vérifier vos disponibilités centrales.</p>
@@ -127,7 +127,7 @@ export default function MediaStep() {
                         </label>
                         <input
                             type="tel"
-                            {...register("telephone")}
+                            {...register("phone")}
                             placeholder="05 XX XX XX XX"
                             className="w-full h-12 px-4 rounded-xl border border-[#D4D2CF] bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors"
                         />

@@ -327,11 +327,11 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                                             updatedValue={pendingUpdates?.email}
                                         />
                                         <RenderField
-                                            label="Réseaux Sociaux / Site"
+                                            label="Réseaux Sociaux"
                                             icon={Globe}
                                             fieldKey="social_link"
-                                            value={item.social_link || item.website_link}
-                                            updatedValue={pendingUpdates?.social_link || pendingUpdates?.website_link}
+                                            value={item.social_link}
+                                            updatedValue={pendingUpdates?.social_link}
                                         />
                                     </div>
                                 </div>

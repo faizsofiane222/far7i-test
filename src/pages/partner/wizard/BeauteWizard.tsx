@@ -36,12 +36,12 @@ export default function BeauteWizard() {
     const methods = useForm<BeauteFormValues>({
         resolver: zodResolver(beauteSchema),
         defaultValues: {
-            nom: "",
+            commercial_name: "",
             category_slug: "coiffure_beaute",
             wilaya_id: "",
-            adresse: "",
-            evenementsAccepte: [],
-            description: "",
+            address: "",
+            events_accepted: [],
+            bio: "",
             specialites: {
                 hasCoiffure: false,
                 hasMaquillage: false,
@@ -56,9 +56,9 @@ export default function BeauteWizard() {
             prixAPartirDeDA: 0,
             acompteMontantDA: 0,
             politiqueAnnulation: "",
-            galeriePhotos: [],
-            utiliserFormulaireFar7i: true,
-            telephone: "",
+            media: [],
+            formulaire_far7i: true,
+            phone: "",
         },
     });
 
@@ -107,12 +107,12 @@ export default function BeauteWizard() {
                 const politiqueAnnulation = annulationOpt ? annulationOpt.split(":")[1] : "";
 
                 reset({
-                    nom: provider.commercial_name || "",
+                    commercial_name: provider.commercial_name || "",
                     category_slug: "coiffure_beaute",
                     wilaya_id: provider.wilaya_id || "",
-                    adresse: provider.address || "",
-                    evenementsAccepte: provider.events_accepted || [],
-                    description: provider.bio || "",
+                    address: provider.address || "",
+                    events_accepted: provider.events_accepted || [],
+                    bio: provider.bio || "",
                     specialites: {
                         hasCoiffure,
                         hasMaquillage,
@@ -127,9 +127,9 @@ export default function BeauteWizard() {
                     prixAPartirDeDA: provider.base_price || 0,
                     acompteMontantDA,
                     politiqueAnnulation,
-                    galeriePhotos: mediaUrls,
-                    utiliserFormulaireFar7i: true,
-                    telephone: provider.phone_number || "",
+                    media: mediaUrls,
+                    formulaire_far7i: true,
+                    phone: provider.phone_number || "",
                 });
 
                 if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
@@ -148,11 +148,11 @@ export default function BeauteWizard() {
 
     const getFieldsForStep = (stepNumber: number): (keyof BeauteFormValues)[] => {
         switch (stepNumber) {
-            case 1: return ["nom", "wilaya_id", "evenementsAccepte"];
+            case 1: return ["commercial_name", "wilaya_id", "events_accepted"];
             case 2: return ["specialites"];
             case 3: return ["organisation", "wilayasDeplacement"];
             case 4: return ["prixAPartirDeDA", "acompteMontantDA", "politiqueAnnulation"];
-            case 5: return ["galeriePhotos", "telephone", "utiliserFormulaireFar7i"];
+            case 5: return ["media", "phone", "formulaire_far7i"];
             default: return [];
         }
     };
@@ -193,15 +193,15 @@ export default function BeauteWizard() {
             // 1. Upsert Provider
             const providerPayload = {
                 user_id: user.id,
-                commercial_name: data.nom,
+                commercial_name: data.commercial_name,
                 category_slug: "coiffure_beaute",
                 wilaya_id: data.wilaya_id,
-                address: data.adresse,
-                events_accepted: data.evenementsAccepte,
-                bio: data.description,
+                address: typeof data.address === 'string' ? data.address : data.address.address,
+                events_accepted: data.events_accepted,
+                bio: data.bio,
                 base_price: data.prixAPartirDeDA,
                 travel_wilayas: data.deplacementPossible ? data.wilayasDeplacement : [],
-                phone_number: data.telephone || "",
+                phone_number: data.phone || "",
                 moderation_status: isDraft ? "draft" : "pending",
                 last_saved_step: isDraft ? step : null,
             };
@@ -246,9 +246,9 @@ export default function BeauteWizard() {
             }
 
             // 3. Media Sync
-            if (data.galeriePhotos.length > 0) {
+            if (data.media && data.media.length > 0) {
                 await supabase.from("provider_media").delete().eq("provider_id", currentProviderId);
-                const mediaPayload = data.galeriePhotos.map((url, i) => ({
+                const mediaPayload = data.media.map((url, i) => ({
                     provider_id: currentProviderId,
                     media_url: url,
                     is_main: i === 0,

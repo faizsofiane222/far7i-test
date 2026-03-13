@@ -10,23 +10,23 @@ export const lieuReceptionSchema = z.object({
     bio: z.string().optional(),
 
     // Step 2: Capacités & Espaces
-    capaciteMaximale: z.number().min(1, "La capacité maximale est requise"),
-    capaciteMinimale: z.number().optional(),
+    capaciteMaximale: z.coerce.number().min(1, "La capacité maximale est requise"),
+    capaciteMinimale: z.coerce.number().optional(),
     separated_spaces: z.boolean().default(false),
-    capaciteFemmes: z.number().optional(),
-    capaciteHommes: z.number().optional(),
+    capaciteFemmes: z.coerce.number().optional(),
+    capaciteHommes: z.coerce.number().optional(),
 
     salle_dinatoire: z.boolean().default(false),
-    couvertsParService: z.number().optional(),
+    couvertsParService: z.coerce.number().optional(),
     jardin: z.boolean().default(false),
     terrasse: z.boolean().default(false),
     piscine: z.boolean().default(false),
     parking: z.boolean().default(false),
-    placesParking: z.number().optional(),
+    placesParking: z.coerce.number().optional(),
     loge_maries: z.boolean().default(false),
-    loge_maries_nb: z.number().optional(),
+    loge_maries_nb: z.coerce.number().optional(),
     loge_invites: z.boolean().default(false),
-    loge_invites_nb: z.number().optional(),
+    loge_invites_nb: z.coerce.number().optional(),
     salle_attente: z.boolean().default(false),
 
     // Step 3: Services & Équipements
@@ -55,8 +55,8 @@ export const lieuReceptionSchema = z.object({
     boissons: z.boolean().default(false),
 
     // Step 4: Tarification
-    prixAPartirDeDA: z.number().min(0, "Le prix ne peut être négatif"),
-    acompteMontantDA: z.number().min(0, "L'acompte ne peut être négatif"),
+    prixAPartirDeDA: z.coerce.number().min(0, "Le prix ne peut être négatif"),
+    acompteMontantDA: z.coerce.number().min(0, "L'acompte ne peut être négatif"),
     politique_annulation: z.string().optional(),
     plages_horaires: z.array(z.string()).default([]),
     contraintes: z.string().optional(),

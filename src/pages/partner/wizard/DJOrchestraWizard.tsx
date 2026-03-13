@@ -5,25 +5,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, ChevronRight, Check } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { locationTenuesSchema, type LocationTenuesFormValues } from "./location-tenues/schema";
-import IdentityStep from "./location-tenues/steps/IdentityStep";
-import TargetsAndStylesStep from "./location-tenues/steps/TargetsAndStylesStep";
-import ServicesStep from "./location-tenues/steps/ServicesStep";
-import PricingStep from "./location-tenues/steps/PricingStep";
-import MediaStep from "./location-tenues/steps/MediaStep";
+import { djOrchestraSchema, type DJOrchestraFormValues } from "./dj-orchestra/schema";
+import IdentityStep from "./dj-orchestra/steps/IdentityStep";
+import SpecialtiesStep from "./dj-orchestra/steps/SpecialtiesStep";
+import LogisticsStep from "./dj-orchestra/steps/LogisticsStep";
+import PricingStep from "./dj-orchestra/steps/PricingStep";
+import MediaStep from "./dj-orchestra/steps/MediaStep";
 
 const STEPS = [
     { id: 1, label: "Identité" },
-    { id: 2, label: "Cibles & Styles" },
-    { id: 3, label: "Services" },
-    { id: 4, label: "Tarifs" },
+    { id: 2, label: "Spécialités" },
+    { id: 3, label: "Logistique" },
+    { id: 4, label: "Tarification" },
     { id: 5, label: "Médias" },
 ];
 
-export default function LocationTenuesWizard() {
+export default function DJOrchestraWizard() {
     const { id } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -33,29 +33,23 @@ export default function LocationTenuesWizard() {
     const [saving, setSaving] = useState(false);
     const [providerId, setProviderId] = useState<string | null>(id || null);
 
-    const methods = useForm<LocationTenuesFormValues>({
-        resolver: zodResolver(locationTenuesSchema),
+    const methods = useForm<DJOrchestraFormValues>({
+        resolver: zodResolver(djOrchestraSchema),
         defaultValues: {
             commercial_name: "",
-            category_slug: "location_tenues",
+            category_slug: "dj_orchestre",
             wilaya_id: "",
             address: "",
             events_accepted: [],
             bio: "",
-            cibles: {
-                cibleFemmes: false,
-                cibleHommes: false,
-            },
-            styles: {
-                styleTraditionnel: false,
-                styleModerne: false,
-            },
-            services: [],
-            livraisonSurPlace: false,
-            wilayasLivraison: [],
-            prixAPartirDeDAParTenue: 0,
+            is_dj: false,
+            is_orchestra: false,
+            animation_options: [],
+            equipment_options: [],
+            deplacementPossible: false,
+            wilayasDeplacement: [],
+            prixAPartirDeDA: 0,
             acompteMontantDA: 0,
-            cautionMontantDA: 0,
             politiqueAnnulation: "",
             media: [],
             formulaire_far7i: true,
@@ -79,7 +73,7 @@ export default function LocationTenuesWizard() {
                 .select(`
                     *,
                     provider_media(media_url, is_main),
-                    provider_beauty(service_options, property_features)
+                    provider_music(*)
                 `)
                 .eq("id", id)
                 .single();
@@ -87,62 +81,29 @@ export default function LocationTenuesWizard() {
             if (error) throw error;
 
             if (provider) {
-                // Similarly tracking under provider_beauty for now to map to previous architecture
-                const details = (provider.provider_beauty as any)?.[0] || (provider.provider_beauty as any) || {};
+                const music = (provider.provider_music?.[0] as any) || {};
                 const mediaUrls = provider.provider_media?.map((m: any) => m.media_url) || [];
-
-                const optionsList: string[] = details.service_options || [];
-                const featuresList: string[] = details.property_features || [];
-
-                const cibleFemmes = featuresList.includes("cible:femmes");
-                const cibleHommes = featuresList.includes("cible:hommes");
-                const styleTraditionnel = featuresList.includes("style:traditionnel");
-                const styleModerne = featuresList.includes("style:moderne");
-                const livraisonSurPlace = featuresList.includes("livraison:oui");
-
-                const cautionOpt = featuresList.find(opt => opt.startsWith("caution:"));
-                const cautionMontantDA = cautionOpt ? parseInt(cautionOpt.split(":")[1]) : 0;
-
-                const acompteOpt = featuresList.find(opt => opt.startsWith("acompte:"));
-                const acompteMontantDA = acompteOpt ? parseInt(acompteOpt.split(":")[1]) : 0;
-
-                const annulationOpt = featuresList.find(opt => opt.startsWith("annulation:"));
-                const politiqueAnnulation = annulationOpt ? annulationOpt.split(":")[1] : "";
-
-                const mappedServices = optionsList.filter(o => o.startsWith("service:")).map(o => o.split(":")[1]);
 
                 reset({
                     commercial_name: provider.commercial_name || "",
-                    category_slug: "location_tenues",
+                    category_slug: "dj_orchestre",
                     wilaya_id: provider.wilaya_id || "",
                     address: provider.address || "",
                     events_accepted: provider.events_accepted || [],
                     bio: provider.bio || "",
-                    cibles: {
-                        cibleFemmes,
-                        cibleHommes,
-                    },
-                    styles: {
-                        styleTraditionnel,
-                        styleModerne,
-                    },
-                    services: mappedServices,
-                    livraisonSurPlace,
-                    wilayasLivraison: provider.travel_wilayas || [],
-                    prixAPartirDeDAParTenue: provider.base_price || 0,
-                    acompteMontantDA,
-                    cautionMontantDA,
-                    politiqueAnnulation,
+                    is_dj: music.is_dj || false,
+                    is_orchestra: music.is_orchestra || false,
+                    animation_options: music.animation_options || [],
+                    equipment_options: music.equipment_options || [],
+                    prixAPartirDeDA: provider.base_price || 0,
+                    acompteMontantDA: music.acompte_montant || 0,
+                    deplacementPossible: music.deplacement_possible || (music.wilayas_deplacement?.length > 0),
+                    wilayasDeplacement: music.wilayas_deplacement || [],
+                    politiqueAnnulation: music.politique_annulation || "",
                     media: mediaUrls,
                     formulaire_far7i: true,
                     phone: provider.phone_number || "",
                 });
-
-                if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
-                    setStep(provider.last_saved_step || 1);
-                } else {
-                    setStep(1); // Default to start for published/pending records
-                }
             }
         } catch (error) {
             console.error("Error fetching provider:", error);
@@ -152,12 +113,12 @@ export default function LocationTenuesWizard() {
         }
     };
 
-    const getFieldsForStep = (stepNumber: number): (keyof LocationTenuesFormValues)[] => {
+    const getFieldsForStep = (stepNumber: number): (keyof DJOrchestraFormValues)[] => {
         switch (stepNumber) {
             case 1: return ["commercial_name", "wilaya_id", "events_accepted"];
-            case 2: return ["cibles", "styles"];
-            case 3: return ["wilayasLivraison", "livraisonSurPlace"];
-            case 4: return ["prixAPartirDeDAParTenue", "acompteMontantDA", "cautionMontantDA", "politiqueAnnulation"];
+            case 2: return ["is_dj", "is_orchestra", "animation_options", "equipment_options"];
+            case 3: return ["deplacementPossible", "wilayasDeplacement"];
+            case 4: return ["prixAPartirDeDA", "acompteMontantDA", "politiqueAnnulation"];
             case 5: return ["media", "phone", "formulaire_far7i"];
             default: return [];
         }
@@ -184,7 +145,7 @@ export default function LocationTenuesWizard() {
         await onSubmit(data, true);
     };
 
-    const onSubmit = async (data: LocationTenuesFormValues, isDraftOrEvent?: boolean | React.BaseSyntheticEvent) => {
+    const onSubmit = async (data: DJOrchestraFormValues, isDraftOrEvent?: boolean | React.BaseSyntheticEvent) => {
         const isDraft = typeof isDraftOrEvent === 'boolean' ? isDraftOrEvent : false;
 
         if (!user) {
@@ -200,13 +161,12 @@ export default function LocationTenuesWizard() {
             const providerPayload = {
                 user_id: user.id,
                 commercial_name: data.commercial_name,
-                category_slug: "location_tenues",
+                category_slug: "dj_orchestre",
                 wilaya_id: data.wilaya_id,
                 address: typeof data.address === 'string' ? data.address : data.address.address,
                 events_accepted: data.events_accepted,
                 bio: data.bio,
-                base_price: data.prixAPartirDeDAParTenue,
-                travel_wilayas: data.livraisonSurPlace ? data.wilayasLivraison : [],
+                base_price: data.prixAPartirDeDA,
                 phone_number: data.phone || "",
                 moderation_status: isDraft ? "draft" : "pending",
                 last_saved_step: isDraft ? step : null,
@@ -229,32 +189,21 @@ export default function LocationTenuesWizard() {
                 setProviderId(currentProviderId);
             }
 
-            // 2. Upsert Provider Details
-            const serviceOptions = [
-                ...(data.services.map(s => `service:${s}`))
-            ];
-
-            const propertyFeatures = [
-                ...(data.cibles.cibleFemmes ? ["cible:femmes"] : []),
-                ...(data.cibles.cibleHommes ? ["cible:hommes"] : []),
-                ...(data.styles.styleTraditionnel ? ["style:traditionnel"] : []),
-                ...(data.styles.styleModerne ? ["style:moderne"] : []),
-                ...(data.livraisonSurPlace ? ["livraison:oui"] : []),
-                ...(data.cautionMontantDA ? [`caution:${data.cautionMontantDA}`] : []),
-                ...(data.acompteMontantDA ? [`acompte:${data.acompteMontantDA}`] : []),
-                ...(data.politiqueAnnulation ? [`annulation:${data.politiqueAnnulation}`] : [])
-            ];
-
-            const detailsPayload = {
+            // 2. Upsert Provider Music
+            const musicPayload = {
                 provider_id: currentProviderId,
-                service_options: serviceOptions,
-                property_features: propertyFeatures,
+                is_dj: data.is_dj,
+                is_orchestra: data.is_orchestra,
+                animation_options: data.animation_options,
+                equipment_options: data.equipment_options,
+                acompte_montant: data.acompteMontantDA,
+                politique_annulation: data.politiqueAnnulation,
+                wilayas_deplacement: data.wilayasDeplacement,
+                deplacement_possible: data.deplacementPossible,
             };
 
-            const { error: detailsError } = await supabase.from("provider_beauty").upsert(detailsPayload);
-            if (detailsError) {
-                console.warn("Error inserting details data", detailsError);
-            }
+            const { error: musicError } = await (supabase as any).from("provider_music").upsert(musicPayload);
+            if (musicError) throw musicError;
 
             // 3. Media Sync
             if (data.media && data.media.length > 0) {
@@ -293,7 +242,7 @@ export default function LocationTenuesWizard() {
             <div className="max-w-4xl mx-auto px-4 pt-12">
                 {/* Stepper Header */}
                 <div className="mb-12">
-                    <h1 className="text-4xl font-serif text-[#1E1E1E] mb-8 text-center">Location des Tenues</h1>
+                    <h1 className="text-4xl font-serif text-[#1E1E1E] mb-8 text-center">DJ & Orchestre</h1>
 
                     <div className="flex items-center justify-between relative px-2">
                         <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-[#D4D2CF] -translate-y-1/2 z-0" />
@@ -324,8 +273,8 @@ export default function LocationTenuesWizard() {
                         <form onSubmit={(e) => { e.preventDefault(); }}>
                             <div className="p-8 md:p-12">
                                 {step === 1 && <IdentityStep />}
-                                {step === 2 && <TargetsAndStylesStep />}
-                                {step === 3 && <ServicesStep />}
+                                {step === 2 && <SpecialtiesStep />}
+                                {step === 3 && <LogisticsStep />}
                                 {step === 4 && <PricingStep />}
                                 {step === 5 && <MediaStep />}
                             </div>
@@ -340,27 +289,26 @@ export default function LocationTenuesWizard() {
                                     {step === 1 ? "Annuler" : "Précédent"}
                                 </button>
 
-                                <div className="flex items-center gap-4">
+                                <div className="flex gap-4">
                                     {step < STEPS.length && (
                                         <button
                                             type="button"
                                             onClick={handleSaveDraft}
                                             disabled={saving}
-                                            className="px-6 py-3 border border-[#D4D2CF] rounded-xl text-xs font-bold uppercase tracking-widest text-[#1E1E1E] bg-transparent hover:border-[#B79A63] transition-all disabled:opacity-50"
+                                            className="px-6 py-2.5 rounded-full font-bold text-sm bg-transparent border border-[#D4D2CF] text-[#1E1E1E] hover:border-[#B79A63] hover:text-[#B79A63] transition-all flex items-center"
                                         >
-                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sauvegarder le brouillon"}
+                                            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                            Sauvegarder le brouillon
                                         </button>
                                     )}
-
                                     <button
                                         type="button"
                                         onClick={onNext}
                                         disabled={saving}
-                                        className="min-w-[140px] px-6 py-3 rounded-xl bg-[#1E1E1E] text-[#F8F5F0] text-xs font-bold uppercase tracking-widest hover:bg-[#1E1E1E]/90 transition-all flex items-center justify-center"
+                                        className="px-6 py-2.5 rounded-full font-bold text-sm bg-[#1E1E1E] text-white hover:bg-[#B79A63] transition-all flex items-center"
                                     >
-                                        {saving ? <Loader2 className="w-4 h-4 animate-spin text-[#F8F5F0]" /> :
-                                            step === STEPS.length ? "Soumettre pour validation" :
-                                                <span className="flex items-center gap-2">Suivant <ChevronRight className="w-4 h-4" /></span>}
+                                        {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                        {step === STEPS.length ? "Soumettre pour validation" : "Suivant"}
                                     </button>
                                 </div>
                             </div>

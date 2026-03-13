@@ -4,6 +4,7 @@ import { MapPin, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useEventTypes } from "@/hooks/useEventTypes";
+import GoogleMapsLocator from "@/components/ui/GoogleMapsLocator";
 
 interface Wilaya {
     id: string;
@@ -13,7 +14,7 @@ interface Wilaya {
 
 export default function IdentityStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
-    const events = watch("evenementsAccepte") || [];
+    const events = watch("events_accepted") || [];
     const { eventTypes, loading: loadingEvents } = useEventTypes();
     const [wilayas, setWilayas] = useState<Wilaya[]>([]);
     const [loadingWilayas, setLoadingWilayas] = useState(true);
@@ -40,9 +41,9 @@ export default function IdentityStep() {
 
     const handleEventToggle = (slug: string) => {
         if (events.includes(slug)) {
-            setValue("evenementsAccepte", events.filter((e: string) => e !== slug), { shouldValidate: true });
+            setValue("events_accepted", events.filter((e: string) => e !== slug), { shouldValidate: true });
         } else {
-            setValue("evenementsAccepte", [...events, slug], { shouldValidate: true });
+            setValue("events_accepted", [...events, slug], { shouldValidate: true });
         }
     };
 
@@ -58,12 +59,12 @@ export default function IdentityStep() {
                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Nom de la boutique / prestataire *</label>
                     <input
                         type="text"
-                        {...register("nom")}
+                        {...register("commercial_name")}
                         placeholder="Ex: La Robe Blanche"
-                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors", errors.nom ? "border-red-500" : "border-[#D4D2CF]")}
+                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors", errors.commercial_name ? "border-red-500" : "border-[#D4D2CF]")}
                     />
                     <p className="text-xs text-[#1E1E1E]/80 mt-2">Le nom commercial visible par vos clients.</p>
-                    {errors.nom && <p className="text-red-500 text-xs mt-1">{errors.nom.message as string}</p>}
+                    {errors.commercial_name && <p className="text-red-500 text-xs mt-1">{errors.commercial_name.message as string}</p>}
                 </div>
 
                 <div>
@@ -85,19 +86,14 @@ export default function IdentityStep() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Localisation de la boutique</label>
-                    <input
-                        type="text"
-                        {...register("adresse")}
-                        placeholder="Ex: Centre-ville"
-                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors mb-4", errors.adresse ? "border-red-500" : "border-[#D4D2CF]")}
-                    />
-
-                    {/* Mock Google Maps Picker */}
-                    <div className="w-full h-32 bg-[#F8F5F0] border border-[#D4D2CF] rounded-xl relative overflow-hidden flex flex-col items-center justify-center">
-                        <MapPin className="w-6 h-6 text-[#B79A63] mb-1 z-10" />
-                        <p className="text-xs font-bold text-[#1E1E1E] z-10">Cliquer pour marquer la position (Mock Google Maps)</p>
+                    <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Localisation de la boutique (Google Maps) *</label>
+                    <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-[#D4D2CF] mb-4">
+                        <GoogleMapsLocator
+                            value={typeof watch("address") === 'string' ? { address: watch("address"), lat: null, lng: null } : watch("address")}
+                            onChange={(location) => setValue("address", location, { shouldValidate: true })}
+                        />
                     </div>
+                    {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message as string}</p>}
                 </div>
 
                 <div className="pt-4 border-t border-[#D4D2CF]/50">
@@ -130,13 +126,13 @@ export default function IdentityStep() {
                             })
                         )}
                     </div>
-                    {errors.evenementsAccepte && <p className="text-red-500 text-xs mt-2">{errors.evenementsAccepte.message as string}</p>}
+                    {errors.events_accepted && <p className="text-red-500 text-xs mt-2">{errors.events_accepted.message as string}</p>}
                 </div>
 
                 <div className="pt-4 border-t border-[#D4D2CF]/50">
                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Description de la boutique</label>
                     <textarea
-                        {...register("description")}
+                        {...register("bio")}
                         rows={4}
                         className="w-full p-4 rounded-xl border border-[#D4D2CF] bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors resize-none"
                         placeholder="Présentez votre collection de robes, vos modèles exclusifs, et l'expérience unique que vous offrez..."

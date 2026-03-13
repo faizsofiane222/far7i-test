@@ -36,12 +36,12 @@ export default function AnimationTraditionnelleWizard() {
     const methods = useForm<AnimationTraditionnelleFormValues>({
         resolver: zodResolver(animationTraditionnelleSchema),
         defaultValues: {
-            nom: "",
+            commercial_name: "",
             category_slug: "animation_musicale_traditionnelle",
             wilaya_id: "",
-            adresse: "",
-            evenementsAccepte: [],
-            description: "",
+            address: "",
+            events_accepted: [],
+            bio: "",
             hasZorna: false,
             hasKarkabou: false,
             hasBendir: false,
@@ -52,9 +52,9 @@ export default function AnimationTraditionnelleWizard() {
             prixAPartirDeDA: 0,
             acompteMontantDA: 0,
             politiqueAnnulation: "",
-            galeriePhotos: [],
-            utiliserFormulaireFar7i: true,
-            telephone: "",
+            media: [],
+            formulaire_far7i: true,
+            phone: "",
         },
     });
 
@@ -86,12 +86,12 @@ export default function AnimationTraditionnelleWizard() {
                 const mediaUrls = provider.provider_media?.map((m: any) => m.media_url) || [];
 
                 reset({
-                    nom: provider.commercial_name || "",
+                    commercial_name: provider.commercial_name || "",
                     category_slug: "animation_musicale_traditionnelle",
                     wilaya_id: provider.wilaya_id || "",
-                    adresse: provider.address || "",
-                    evenementsAccepte: provider.events_accepted || [],
-                    description: provider.bio || "",
+                    address: provider.address || "",
+                    events_accepted: provider.events_accepted || [],
+                    bio: provider.bio || "",
                     hasZorna: music.has_zorna || false,
                     hasKarkabou: music.has_karkabou || false,
                     hasBendir: music.has_bendir || false,
@@ -102,9 +102,9 @@ export default function AnimationTraditionnelleWizard() {
                     deplacementPossible: music.deplacement_possible || (music.wilayas_deplacement?.length > 0),
                     wilayasDeplacement: music.wilayas_deplacement || [],
                     politiqueAnnulation: music.politique_annulation || "",
-                    galeriePhotos: mediaUrls,
-                    utiliserFormulaireFar7i: true,
-                    telephone: provider.phone_number || "",
+                    media: mediaUrls,
+                    formulaire_far7i: true,
+                    phone: provider.phone_number || "",
                 });
             }
         } catch (error) {
@@ -117,11 +117,11 @@ export default function AnimationTraditionnelleWizard() {
 
     const getFieldsForStep = (stepNumber: number): (keyof AnimationTraditionnelleFormValues)[] => {
         switch (stepNumber) {
-            case 1: return ["nom", "wilaya_id", "evenementsAccepte"];
+            case 1: return ["commercial_name", "wilaya_id", "events_accepted"];
             case 2: return ["hasZorna", "hasKarkabou", "hasBendir", "hasAutre", "autreAnimationSpecifiez"];
             case 3: return ["deplacementPossible", "wilayasDeplacement"];
             case 4: return ["prixAPartirDeDA", "acompteMontantDA", "politiqueAnnulation"];
-            case 5: return ["galeriePhotos", "telephone", "utiliserFormulaireFar7i"];
+            case 5: return ["media", "phone", "formulaire_far7i"];
             default: return [];
         }
     };
@@ -162,14 +162,14 @@ export default function AnimationTraditionnelleWizard() {
             // 1. Upsert Provider
             const providerPayload = {
                 user_id: user.id,
-                commercial_name: data.nom,
+                commercial_name: data.commercial_name,
                 category_slug: "animation_musicale_traditionnelle",
                 wilaya_id: data.wilaya_id,
-                address: data.adresse,
-                events_accepted: data.evenementsAccepte,
-                bio: data.description,
+                address: typeof data.address === 'string' ? data.address : data.address.address,
+                events_accepted: data.events_accepted,
+                bio: data.bio,
                 base_price: data.prixAPartirDeDA,
-                phone_number: data.telephone || "",
+                phone_number: data.phone || "",
                 moderation_status: isDraft ? "draft" : "pending",
                 last_saved_step: isDraft ? step : null,
             };
@@ -211,9 +211,9 @@ export default function AnimationTraditionnelleWizard() {
             }
 
             // 3. Media Sync
-            if (data.galeriePhotos.length > 0) {
+            if (data.media && data.media.length > 0) {
                 await supabase.from("provider_media").delete().eq("provider_id", currentProviderId);
-                const mediaPayload = data.galeriePhotos.map((url, i) => ({
+                const mediaPayload = data.media.map((url, i) => ({
                     provider_id: currentProviderId,
                     media_url: url,
                     is_main: i === 0,

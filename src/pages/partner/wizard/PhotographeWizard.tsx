@@ -39,12 +39,12 @@ export default function PhotographeWizard() {
         resolver: zodResolver(photographeSchema),
         mode: "onChange",
         defaultValues: {
-            nom: "",
+            commercial_name: "",
             category_slug: "photographe",
             wilaya_id: "",
-            localisation: "",
-            evenementsAccepte: [],
-            description: "",
+            address: "",
+            events_accepted: [],
+            bio: "",
             isPhotographe: false,
             isVideaste: false,
             couverture: [],
@@ -62,12 +62,12 @@ export default function PhotographeWizard() {
             deplacementPossible: false,
             wilayasDeplacement: [],
             prixAPartirDeDA: 0,
-            acompteMontantDA: undefined,
+            acompteMontantDA: 0,
             politiqueAnnulation: "",
             delaisLivraisonSemaines: 4,
-            galeriePhotos: [],
-            utiliserFormulaireFar7i: true,
-            telephone: ""
+            media: [],
+            formulaire_far7i: true,
+            phone: ""
         }
     });
 
@@ -97,11 +97,11 @@ export default function PhotographeWizard() {
                     const services = photo.service_types || [];
 
                     methods.reset({
-                        nom: provider.commercial_name || "",
+                        commercial_name: provider.commercial_name || "",
                         wilaya_id: provider.wilaya_id || "",
-                        localisation: provider.address || "",
-                        evenementsAccepte: provider.events_accepted || [],
-                        description: provider.bio || "",
+                        address: provider.address || "",
+                        events_accepted: provider.events_accepted || [],
+                        bio: provider.bio || "",
 
                         isPhotographe: services.includes("photographie"),
                         isVideaste: services.includes("video"),
@@ -125,11 +125,10 @@ export default function PhotographeWizard() {
                         prixAPartirDeDA: Number(provider.base_price) || 0,
                         acompteMontantDA: Number(photo.acompte_demande) || 0,
                         politiqueAnnulation: photo.politique_annulation || "",
-                        delaisLivraisonSemaines: photo.delivery_time_weeks || 4,
-
-                        galeriePhotos: media,
-                        telephone: provider.phone_number || "",
-                        utiliserFormulaireFar7i: true,
+                        delaisLivraisonSemaines: Number(photo.delivery_time_weeks) || 4,
+                        media,
+                        phone: provider.phone_number || "",
+                        formulaire_far7i: true,
                     });
 
                     if (provider.moderation_status === "incomplete") {
@@ -170,11 +169,11 @@ export default function PhotographeWizard() {
 
     const handleNext = async () => {
         let fieldsToValidate: any = [];
-        if (currentStep === 1) fieldsToValidate = ['nom', 'wilaya_id', 'evenementsAccepte'];
+        if (currentStep === 1) fieldsToValidate = ['commercial_name', 'wilaya_id', 'address', 'events_accepted', 'bio', 'phone'];
         if (currentStep === 2) fieldsToValidate = ['isPhotographe', 'isVideaste'];
         if (currentStep === 3) fieldsToValidate = ['livrables']; // checks superRefine partially
         if (currentStep === 4) fieldsToValidate = ['prixAPartirDeDA', 'wilayasDeplacement'];
-        if (currentStep === 5) fieldsToValidate = ['galeriePhotos'];
+        if (currentStep === 5) fieldsToValidate = ['media'];
 
         const isValid = await methods.trigger(fieldsToValidate);
 
@@ -216,15 +215,15 @@ export default function PhotographeWizard() {
         const travelWilayas = data.deplacementPossible ? data.wilayasDeplacement : [];
 
         const providerPayload = {
-            commercial_name: data.nom,
+            commercial_name: data.commercial_name,
             category_slug: data.category_slug,
             wilaya_id: data.wilaya_id || null,
-            address: data.localisation,
-            events_accepted: data.evenementsAccepte,
-            bio: data.description,
+            address: typeof data.address === 'string' ? data.address : data.address.address,
+            events_accepted: data.events_accepted,
+            bio: data.bio,
             base_price: data.prixAPartirDeDA,
             travel_wilayas: travelWilayas,
-            phone_number: data.telephone || "",
+            phone_number: data.phone || "",
             moderation_status: isDraft ? 'draft' : 'pending',
             last_saved_step: isDraft ? currentStep : null
         };
@@ -265,9 +264,9 @@ export default function PhotographeWizard() {
                 politique_annulation: data.politiqueAnnulation
             }, { onConflict: 'provider_id' }).throwOnError();
 
-            if (data.galeriePhotos && data.galeriePhotos.length > 0) {
+            if (data.media && data.media.length > 0) {
                 await supabase.from('provider_media').delete().eq('provider_id', currentProviderId);
-                const mediaPayload = data.galeriePhotos.map((url, index) => ({
+                const mediaPayload = data.media.map((url, index) => ({
                     provider_id: currentProviderId,
                     media_url: url,
                     is_main: index === 0

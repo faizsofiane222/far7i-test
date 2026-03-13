@@ -83,14 +83,11 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
         bio: "",
         profile_picture_url: "",
         wilaya_id: "",
-        willingness_to_travel: false,
         phone_number: "",
         is_whatsapp_active: false,
         is_viber_active: false,
         social_link: "",
-        website_link: "",
         provider_type: "individual", // 'agency' | 'individual'
-        years_of_experience: 0,
         pending_changes: null as any,
     });
 
@@ -199,14 +196,11 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                     bio: dataToLoad.bio || "",
                     profile_picture_url: dataToLoad.profile_picture_url || "",
                     wilaya_id: dataToLoad.wilaya_id || "",
-                    willingness_to_travel: dataToLoad.willingness_to_travel || false,
                     phone_number: phoneFallback,
                     is_whatsapp_active: dataToLoad.is_whatsapp_active || false,
                     is_viber_active: dataToLoad.is_viber_active || false,
                     social_link: socialFallback,
-                    website_link: dataToLoad.website_link || "",
                     provider_type: dataToLoad.provider_type || "individual",
-                    years_of_experience: dataToLoad.years_of_experience || 0,
                     pending_changes: dataToLoad.pending_changes,
                 });
             } else if (user) {
@@ -220,14 +214,11 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                     bio: "",
                     profile_picture_url: "",
                     wilaya_id: metadata.wilaya_id || metadata.wilaya || "",
-                    willingness_to_travel: false,
                     phone_number: metadata.phone || "",
                     is_whatsapp_active: false,
                     is_viber_active: false,
                     social_link: metadata.social_link || metadata.socialLink || "",
-                    website_link: "",
                     provider_type: metadata.partner_type || metadata.partnerType || "individual",
-                    years_of_experience: 0,
                     pending_changes: null,
                 });
                 setProviderStatus('incomplete');
@@ -352,14 +343,11 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                 bio: formData.bio,
                 profile_picture_url: formData.profile_picture_url,
                 wilaya_id: formData.wilaya_id || null,
-                willingness_to_travel: formData.willingness_to_travel,
                 phone_number: formData.phone_number,
                 is_whatsapp_active: formData.is_whatsapp_active,
                 is_viber_active: formData.is_viber_active,
                 social_link: formData.social_link,
-                website_link: formData.website_link,
                 provider_type: formData.provider_type,
-                years_of_experience: formData.years_of_experience,
                 updated_at: new Date().toISOString(),
             };
 

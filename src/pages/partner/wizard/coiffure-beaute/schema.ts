@@ -1,12 +1,12 @@
 import * as z from "zod";
 
 export const beauteSchema = z.object({
-    nom: z.string().min(2, "Le nom est requis (minimum 2 caractères)"),
+    commercial_name: z.string().min(2, "Le nom est requis (minimum 2 caractères)"),
     category_slug: z.string().default("coiffure_beaute"),
     wilaya_id: z.string().min(1, "La wilaya est requise"),
-    adresse: z.string(),
-    evenementsAccepte: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
-    description: z.string().optional(),
+    address: z.any().optional(),
+    events_accepted: z.array(z.string()).min(1, "Sélectionnez au moins un type d'événement"),
+    bio: z.string().optional(),
 
     specialites: z.object({
         hasCoiffure: z.boolean(),
@@ -25,9 +25,9 @@ export const beauteSchema = z.object({
     acompteMontantDA: z.coerce.number().min(0).optional(),
     politiqueAnnulation: z.string().optional(),
 
-    galeriePhotos: z.array(z.string()).min(1, "La photo principale est requise").max(5, "Maximum 5 photos"),
-    utiliserFormulaireFar7i: z.boolean().default(true),
-    telephone: z.string().optional(),
+    media: z.array(z.string()).min(1, "La photo principale est requise").max(5, "Maximum 5 photos"),
+    formulaire_far7i: z.boolean().default(true),
+    phone: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (!data.specialites.hasCoiffure && !data.specialites.hasMaquillage) {
         ctx.addIssue({

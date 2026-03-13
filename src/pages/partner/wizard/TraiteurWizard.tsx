@@ -39,12 +39,12 @@ export default function TraiteurWizard() {
         resolver: zodResolver(traiteurSchema),
         mode: "onChange",
         defaultValues: {
-            nom: "",
+            commercial_name: "",
             category_slug: "traiteur",
             wilaya_id: "",
-            adresse: "",
-            evenementsAccepte: [],
-            description: "",
+            address: "",
+            events_accepted: [],
+            bio: "",
             couvertsMinimum: 0,
             couvertsMaximum: 0,
             typeCuisine: [],
@@ -66,9 +66,9 @@ export default function TraiteurWizard() {
             prixAPartirDeParPersonneDA: 0,
             acompteMontantDA: 0,
             politiqueAnnulation: "",
-            galeriePhotos: [],
-            utiliserFormulaireFar7i: true,
-            telephone: ""
+            media: [],
+            formulaire_far7i: true,
+            phone: ""
         }
     });
 
@@ -95,11 +95,11 @@ export default function TraiteurWizard() {
                     const media = provider.provider_media?.map((m: any) => m.media_url) || [];
 
                     methods.reset({
-                        nom: provider.commercial_name || "",
+                        commercial_name: provider.commercial_name || "",
                         wilaya_id: provider.wilaya_id || "",
-                        adresse: provider.address || "",
-                        evenementsAccepte: provider.events_accepted || [],
-                        description: provider.bio || "",
+                        address: provider.address || "",
+                        events_accepted: provider.events_accepted || [],
+                        bio: provider.bio || "",
 
                         couvertsMinimum: catering.min_guests || 0,
                         couvertsMaximum: catering.max_guests || 0,
@@ -125,9 +125,9 @@ export default function TraiteurWizard() {
                         acompteMontantDA: Number(catering.deposit_amount) || 0,
                         politiqueAnnulation: catering.cancellation_policy || "",
 
-                        galeriePhotos: media,
-                        telephone: provider.phone_number || "",
-                        utiliserFormulaireFar7i: true,
+                        media,
+                        phone: provider.phone_number || "",
+                        formulaire_far7i: true,
                     });
 
                     if (provider.moderation_status === "incomplete" || provider.moderation_status === "draft") {
@@ -166,11 +166,11 @@ export default function TraiteurWizard() {
 
     const handleNext = async () => {
         let fieldsToValidate: any = [];
-        if (currentStep === 1) fieldsToValidate = ['nom', 'wilaya_id', 'evenementsAccepte'];
+        if (currentStep === 1) fieldsToValidate = ['commercial_name', 'wilaya_id', 'events_accepted'];
         if (currentStep === 2) fieldsToValidate = ['couvertsMinimum', 'couvertsMaximum'];
         if (currentStep === 3) fieldsToValidate = []; // simple toggles
         if (currentStep === 4) fieldsToValidate = ['prixAPartirDeParPersonneDA'];
-        if (currentStep === 5) fieldsToValidate = ['galeriePhotos'];
+        if (currentStep === 5) fieldsToValidate = ['media'];
 
         const isValid = await methods.trigger(fieldsToValidate);
 
@@ -209,14 +209,14 @@ export default function TraiteurWizard() {
     const persistData = async (data: TraiteurFormValues, isDraft: boolean) => {
         let currentProviderId = providerId;
         const providerPayload = {
-            commercial_name: data.nom,
+            commercial_name: data.commercial_name,
             category_slug: data.category_slug,
             wilaya_id: data.wilaya_id || null,
-            address: typeof data.adresse === 'string' ? data.adresse : data.adresse.address,
-            events_accepted: data.evenementsAccepte,
-            bio: data.description,
+            address: typeof data.address === 'string' ? data.address : data.address.address,
+            events_accepted: data.events_accepted,
+            bio: data.bio,
             base_price: data.prixAPartirDeParPersonneDA,
-            phone_number: data.telephone || "",
+            phone_number: data.phone || "",
             moderation_status: isDraft ? 'draft' : 'pending',
             last_saved_step: isDraft ? currentStep : null
         };
@@ -254,9 +254,9 @@ export default function TraiteurWizard() {
                 cancellation_policy: data.politiqueAnnulation
             }, { onConflict: 'provider_id' }).throwOnError();
 
-            if (data.galeriePhotos && data.galeriePhotos.length > 0) {
+            if (data.media && data.media.length > 0) {
                 await supabase.from('provider_media').delete().eq('provider_id', currentProviderId);
-                const mediaPayload = data.galeriePhotos.map((url, index) => ({
+                const mediaPayload = data.media.map((url, index) => ({
                     provider_id: currentProviderId,
                     media_url: url,
                     is_main: index === 0

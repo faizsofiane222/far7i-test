@@ -32,7 +32,7 @@ export default function CapacityStep() {
                 </label>
                 <input
                     type="number"
-                    {...register("capaciteMaximale", { valueAsNumber: true })}
+                    {...register("capaciteMaximale")}
                     placeholder="Ex: 400"
                     className={cn("w-full h-12 px-4 rounded-xl border bg-white focus:outline-none focus:border-[#B79A63] text-lg font-bold text-[#1E1E1E] transition-colors", errors.capaciteMaximale ? "border-red-500" : "border-[#D4D2CF]")}
                 />
@@ -83,12 +83,12 @@ export default function CapacityStep() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Capacité Femmes</label>
-                                <input type="number" {...register("capaciteFemmes", { valueAsNumber: true })} className={cn("w-full h-10 px-3 rounded-lg border bg-[#F8F5F0] focus:outline-none focus:border-[#B79A63]", errors.capaciteFemmes ? "border-red-500" : "border-[#D4D2CF]")} placeholder="0" />
+                                <input type="number" {...register("capaciteFemmes")} className={cn("w-full h-10 px-3 rounded-lg border bg-[#F8F5F0] focus:outline-none focus:border-[#B79A63]", errors.capaciteFemmes ? "border-red-500" : "border-[#D4D2CF]")} placeholder="0" />
                                 {errors.capaciteFemmes && <p className="text-red-500 text-xs mt-1">{errors.capaciteFemmes.message as string}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Capacité Hommes</label>
-                                <input type="number" {...register("capaciteHommes", { valueAsNumber: true })} className="w-full h-10 px-3 rounded-lg border bg-[#F8F5F0] border-[#D4D2CF] focus:outline-none focus:border-[#B79A63]" placeholder="0" />
+                                <input type="number" {...register("capaciteHommes")} className="w-full h-10 px-3 rounded-lg border bg-[#F8F5F0] border-[#D4D2CF] focus:outline-none focus:border-[#B79A63]" placeholder="0" />
                             </div>
                         </div>
                     </div>
@@ -114,7 +114,7 @@ export default function CapacityStep() {
                         {salleDinatoire && (
                             <div className="mt-4 pt-4 border-t border-[#D4D2CF]">
                                 <label className="block text-xs font-bold text-[#1E1E1E]/80 mb-2">Couverts par service (Max {capaciteMaximale})</label>
-                                <input type="number" {...register("couvertsParService", { valueAsNumber: true })} placeholder="Ex: 150" className={cn("w-full h-10 px-3 rounded-lg border focus:outline-none focus:border-[#B79A63] bg-white", errors.couvertsParService ? "border-red-500" : "border-[#D4D2CF]")} />
+                                <input type="number" {...register("couvertsParService")} placeholder="Ex: 150" className={cn("w-full h-10 px-3 rounded-lg border focus:outline-none focus:border-[#B79A63] bg-white", errors.couvertsParService ? "border-red-500" : "border-[#D4D2CF]")} />
                                 {errors.couvertsParService && <p className="text-red-500 text-xs mt-1">{errors.couvertsParService.message as string}</p>}
                             </div>
                         )}
@@ -129,7 +129,7 @@ export default function CapacityStep() {
                         {parking && (
                             <div className="mt-4 pt-4 border-t border-[#D4D2CF]">
                                 <label className="block text-xs font-bold text-[#1E1E1E]/80 mb-2">Places disponibles</label>
-                                <input type="number" {...register("placesParking", { valueAsNumber: true })} placeholder="Ex: 50" className="w-full h-10 px-3 rounded-lg border border-[#D4D2CF] bg-white focus:outline-none focus:border-[#B79A63]" />
+                                <input type="number" {...register("placesParking")} placeholder="Ex: 50" className="w-full h-10 px-3 rounded-lg border border-[#D4D2CF] bg-white focus:outline-none focus:border-[#B79A63]" />
                             </div>
                         )}
                     </div>
@@ -147,7 +147,7 @@ export default function CapacityStep() {
                             {loge.isChecked && (
                                 <div className="mt-4 pt-4 border-t border-[#D4D2CF]">
                                     <label className="block text-xs font-bold text-[#1E1E1E]/80 mb-2">Quantité</label>
-                                    <input type="number" {...register(loge.fieldName, { valueAsNumber: true })} placeholder="1" className="w-full h-10 px-3 rounded-lg border border-[#D4D2CF] bg-white focus:outline-none focus:border-[#B79A63]" />
+                                    <input type="number" {...register(loge.fieldName)} placeholder="1" className="w-full h-10 px-3 rounded-lg border border-[#D4D2CF] bg-white focus:outline-none focus:border-[#B79A63]" />
                                 </div>
                             )}
                         </div>

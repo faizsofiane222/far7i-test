@@ -46,7 +46,7 @@ export default function PricingStep() {
                     <div className="relative z-10">
                         <input
                             type="number"
-                            {...register("prixAPartirDeDA", { valueAsNumber: true })}
+                            {...register("prixAPartirDeDA")}
                             className={cn("w-full h-14 pl-4 pr-16 rounded-xl border bg-[#F8F5F0] text-xl font-bold text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] focus:bg-white transition-all", errors.prixAPartirDeDA ? "border-red-500" : "border-[#D4D2CF]")}
                             placeholder="0"
                         />
@@ -61,7 +61,7 @@ export default function PricingStep() {
                     <div className="relative z-10">
                         <input
                             type="number"
-                            {...register("acompteMontantDA", { valueAsNumber: true })}
+                            {...register("acompteMontantDA")}
                             className={cn("w-full h-14 pl-4 pr-16 rounded-xl border bg-[#F8F5F0] text-xl font-bold text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] focus:bg-white transition-all", errors.acompteMontantDA ? "border-red-500" : "border-[#D4D2CF]")}
                             placeholder="0"
                         />

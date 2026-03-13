@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 export default function MediaStep() {
     const { register, watch, setValue, formState: { errors } } = useFormContext();
-    const photos = watch("galeriePhotos") || [];
-    const utiliserFormulaireFar7i = watch("utiliserFormulaireFar7i") !== false; // Default to true
+    const photos = watch("media") || [];
+    const formulaire_far7i = watch("formulaire_far7i") !== false; // Default to true
 
     const [isDragging, setIsDragging] = useState(false);
 
@@ -26,7 +26,7 @@ export default function MediaStep() {
             // Mock URLs
             const newPhotos = filesToAdd.map((file) => URL.createObjectURL(file));
 
-            setValue("galeriePhotos", [...photos, ...newPhotos], { shouldValidate: true });
+            setValue("media", [...photos, ...newPhotos], { shouldValidate: true });
 
             // Reset input
             e.target.value = "";
@@ -36,7 +36,7 @@ export default function MediaStep() {
     const removePhoto = (index: number) => {
         const newPhotos = [...photos];
         newPhotos.splice(index, 1);
-        setValue("galeriePhotos", newPhotos, { shouldValidate: true });
+        setValue("media", newPhotos, { shouldValidate: true });
     };
 
     return (
@@ -111,7 +111,7 @@ export default function MediaStep() {
                             </label>
                         )}
                     </div>
-                    {errors.galeriePhotos && <p className="text-red-500 text-xs mt-1">{errors.galeriePhotos.message as string}</p>}
+                    {errors.media && <p className="text-red-500 text-xs mt-1">{errors.media.message as string}</p>}
                 </div>
 
                 <div className="pt-4 border-t border-[#D4D2CF]/50">
@@ -121,13 +121,13 @@ export default function MediaStep() {
                         <div className="relative">
                             <input
                                 type="checkbox"
-                                {...register("utiliserFormulaireFar7i")}
+                                {...register("formulaire_far7i")}
                                 className="sr-only"
                             />
-                            <div className={cn("block w-14 h-8 rounded-full transition-colors", utiliserFormulaireFar7i ? "bg-[#B79A63]" : "bg-[#D4D2CF]")}></div>
-                            <div className={cn("absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform", utiliserFormulaireFar7i ? "translate-x-6" : "translate-x-0")}></div>
+                            <div className={cn("block w-14 h-8 rounded-full transition-colors", formulaire_far7i ? "bg-[#B79A63]" : "bg-[#D4D2CF]")}></div>
+                            <div className={cn("absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform", formulaire_far7i ? "translate-x-6" : "translate-x-0")}></div>
                         </div>
-                        <span className="text-sm font-bold text-[#1E1E1E]">{utiliserFormulaireFar7i ? 'Oui, formulaire activé' : 'Non, appel direct uniquement'}</span>
+                        <span className="text-sm font-bold text-[#1E1E1E]">{formulaire_far7i ? 'Oui, formulaire activé' : 'Non, appel direct uniquement'}</span>
                     </label>
                 </div>
 
@@ -135,12 +135,12 @@ export default function MediaStep() {
                     <label className="block text-sm font-bold text-[#1E1E1E] mb-2">Numéro de téléphone public (Optionnel)</label>
                     <input
                         type="tel"
-                        {...register("telephone")}
+                        {...register("phone")}
                         placeholder="Ex: 0555 12 34 56"
-                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors", errors.telephone ? "border-red-500" : "border-[#D4D2CF]")}
+                        className={cn("w-full h-12 px-4 rounded-xl border bg-white text-[#1E1E1E] focus:outline-none focus:border-[#B79A63] transition-colors", errors.phone ? "border-red-500" : "border-[#D4D2CF]")}
                     />
                     <p className="text-xs text-[#1E1E1E]/80 mt-2">Sera affiché sur votre page pour les appels directs.</p>
-                    {errors.telephone && <p className="text-red-500 text-xs mt-1">{errors.telephone.message as string}</p>}
+                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message as string}</p>}
                 </div>
             </div>
         </div>
