@@ -204,6 +204,11 @@ export default function AdminPartners() {
                                                         <Clock className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
                                                         <span className="text-xs font-bold text-orange-600 uppercase">Attention requise</span>
                                                     </div>
+                                                ) : partner.profile?.status === 'incomplete' || !partner.profile ? (
+                                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                                                        <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+                                                        <span className="text-xs font-bold text-slate-500 uppercase">Profil Incomplet</span>
+                                                    </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                                                         <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />

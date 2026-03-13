@@ -255,7 +255,7 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="right" className="w-full md:w-[85%] lg:w-[75%] max-w-none p-0 bg-[#F8F5F0] border-l-0 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.3)]">
+            <SheetContent side="right" className="w-full p-0 bg-[#F8F5F0] border-l-0 overflow-hidden shadow-none sm:max-w-none">
                 <div className="flex flex-col h-full relative font-lato">
                     {/* Header */}
                     <div className="sticky top-0 z-50 bg-[#1E1E1E] text-white p-8 shadow-2xl flex items-center justify-between">
