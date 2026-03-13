@@ -1,3 +1,4 @@
+// Triggering re-deployment
 import React, { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
