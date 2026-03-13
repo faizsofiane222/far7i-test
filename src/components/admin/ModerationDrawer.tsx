@@ -58,6 +58,7 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
     };
 
     const handleReject = async () => {
+        if (!item) return;
         if (!rejectionReason) {
             setShowRejectionInput(true);
             return;
