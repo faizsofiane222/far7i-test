@@ -40,11 +40,6 @@ interface Wilaya {
     code: string;
 }
 
-interface Commune {
-    id: string;
-    name: string;
-    wilaya_id: string;
-}
 
 export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?: string; isNewProp?: boolean }) {
     const { user } = useAuth();
@@ -73,7 +68,6 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
     // Lookups
     const [wilayas, setWilayas] = useState<Wilaya[]>([]);
-    const [communes, setCommunes] = useState<Commune[]>([]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -115,13 +109,9 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
     const fetchLookups = async () => {
         try {
-            const [w, c] = await Promise.all([
-                supabase.from("wilayas").select("*").order("code"),
-                supabase.from("communes").select("*").order("name"),
-            ]);
+            const { data: w } = await supabase.from("wilayas").select("*").order("code");
 
-            if (w.data) setWilayas(w.data);
-            if (c.data) setCommunes(c.data);
+            if (w) setWilayas(w);
         } catch (error) {
             console.error("Error fetching lookups:", error);
         }
@@ -161,7 +151,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                 setHasLinkedUser(!!(provider as any).user_id);
 
                 // Store provider status
-                setProviderStatus((provider as any).moderation_status || 'incomplete');
+                setProviderStatus((provider as any).status || (provider as any).moderation_status || 'pending');
 
                 const dataToLoad = (provider as any).pending_changes
                     ? { ...provider, ...(provider as any).pending_changes }
@@ -222,7 +212,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                     provider_type: metadata.partner_type || metadata.partnerType || "individual",
                     pending_changes: null,
                 });
-                setProviderStatus('incomplete');
+                setProviderStatus('pending');
             }
         } catch (error: any) {
             console.error("Error in fetchProfile:", error);
@@ -393,7 +383,8 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                 if (providerId) {
                     const { error: updError } = await supabase.from("providers").update({
                         ...profileData,
-                        moderation_status: user && !adminMode ? 'pending' : (profileData.moderation_status || 'approved')
+                        moderation_status: user && !adminMode ? 'pending' : (profileData.status || profileData.moderation_status || 'approved'),
+                        status: user && !adminMode ? 'pending' : (profileData.status || profileData.moderation_status || 'approved')
                     } as any).eq("id", providerId);
                     if (updError) throw updError;
                 } else {
@@ -402,6 +393,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                         ...(isNew && adminMode && shadowMode ? { user_id: null } : {}),
                         ...(!adminMode && user ? { user_id: user.id } : {}),
                         moderation_status: adminMode ? 'approved' : 'pending',
+                        status: adminMode ? 'approved' : 'pending',
                     };
                     const { data: newProvider, error: insError } = await supabase.from("providers").insert(insertData).select().single();
                     if (insError) throw insError;
@@ -411,18 +403,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
 
             // Note: Service syncing logic removed from here as it's no longer part of the Profile page in V1.
 
-            // If incomplete and not admin, trigger validation automatically
-            if (providerStatus === 'incomplete' && !adminMode && providerId) {
-                try {
-                    await (supabase.rpc as any)('submit_provider_for_validation', {
-                        provider_id: providerId
-                    });
-                    toast.success("✅ Profil mis à jour et soumis pour validation !");
-                } catch (submissionError) {
-                    console.error("Auto-submission error:", submissionError);
-                    toast.error("Profil enregistré mais erreur lors de la soumission pour validation.");
-                }
-            } else if (!shouldSubmitPending) {
+            if (!shouldSubmitPending) {
                 toast.success("Profil mis à jour avec succès");
             }
 
@@ -546,23 +527,6 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
             {!adminMode && (() => {
                 switch (providerStatus) {
 
-                    case 'incomplete':
-                        return (
-                            <div className="bg-orange-50 border-l-4 border-orange-400 py-6 px-8 mb-4 mt-4 rounded-r-3xl mx-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
-                                <div className="flex items-center gap-4 mb-3">
-                                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                                        <AlertCircle className="w-5 h-5 text-orange-500" />
-                                    </div>
-                                    <h3 className="font-serif font-bold text-xl text-orange-600">Profil à compléter</h3>
-                                </div>
-                                <p className="text-orange-500 text-sm leading-relaxed ml-14">
-                                    Votre vitrine Far7i prend forme. Complétez vos informations et enregistrez pour soumettre votre profil à l'équipe de modération.
-                                </p>
-                                <p className="text-orange-600 font-semibold text-sm mt-2 ml-14">
-                                    Vous pourrez modifier vos informations une fois votre profil validé par un administrateur.
-                                </p>
-                            </div>
-                        );
 
                     case 'pending':
                         return (

@@ -204,15 +204,20 @@ export default function AdminPartners() {
                                                         <Clock className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
                                                         <span className="text-xs font-bold text-orange-600 uppercase">Attention requise</span>
                                                     </div>
-                                                ) : partner.profile?.status === 'incomplete' || !partner.profile ? (
-                                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-                                                        <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
-                                                        <span className="text-xs font-bold text-slate-500 uppercase">Profil Incomplet</span>
-                                                    </div>
-                                                ) : (
+                                                ) : partner.profile?.status === 'approved' ? (
                                                     <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                                                         <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
                                                         <span className="text-xs font-bold text-emerald-600 uppercase">Vérifié</span>
+                                                    </div>
+                                                ) : partner.profile?.status === 'rejected' ? (
+                                                    <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-full border border-red-100">
+                                                        <XCircle className="w-3.5 h-3.5 text-red-500" />
+                                                        <span className="text-xs font-bold text-red-600 uppercase">Refusé</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                                                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                        <span className="text-xs font-bold text-slate-500 uppercase">En attente</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -240,7 +245,7 @@ export default function AdminPartners() {
                                                     className="group/item flex items-center justify-between p-5 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-[#F8F5F0] hover:border-[#B79A63]/30 transition-all cursor-pointer"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setSelectedItem({ type: 'profile', data: partner.profile || { id: partner.user_id, display_name: partner.display_name, email: partner.email, status: 'incomplete' } });
+                                                        setSelectedItem({ type: 'profile', data: partner.profile || { id: partner.user_id, display_name: partner.display_name, email: partner.email, status: 'pending' } });
                                                     }}
                                                 >
                                                     <div className="flex items-center gap-4">

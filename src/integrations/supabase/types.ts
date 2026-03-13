@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -34,32 +34,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      communes: {
-        Row: {
-          id: string
-          name: string
-          wilaya_id: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          wilaya_id: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          wilaya_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "communes_wilaya_id_fkey"
-            columns: ["wilaya_id"]
-            isOneToOne: false
-            referencedRelation: "wilayas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       event_types: {
         Row: {
           active: boolean | null
