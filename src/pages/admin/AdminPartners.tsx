@@ -287,7 +287,7 @@ export default function AdminPartners() {
                                                                 </div>
                                                                 <div className="max-w-[140px] lg:max-w-none">
                                                                     <p className="font-bold text-[#1E1E1E] truncate">{presta.commercial_name}</p>
-                                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{presta.category_slug.replace(/_/g, ' ')}</p>
+                                                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{(presta.category_slug || 'service').replace(/_/g, ' ')}</p>
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-4">
