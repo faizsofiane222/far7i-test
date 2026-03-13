@@ -191,7 +191,7 @@ export default function AdminPartners() {
                                                 <h3 className="text-xl font-bold text-[#1E1E1E] group-hover:text-[#B79A63] transition-colors">{partner.display_name}</h3>
                                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
                                                     <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {partner.email}</span>
-                                                    <span className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> {partner.prestations.length} services</span>
+                                                    <span className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> {(partner.prestations?.length || 0)} services</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -262,7 +262,7 @@ export default function AdminPartners() {
                                                 </div>
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {partner.prestations.map((presta) => (
+                                                    {partner.prestations?.map((presta) => (
                                                         <div 
                                                             key={presta.id}
                                                             className="group/presta flex items-center justify-between p-5 rounded-2xl border border-slate-100 bg-white hover:bg-[#F8F5F0] hover:border-[#B79A63]/30 transition-all cursor-pointer shadow-sm hover:shadow-md"

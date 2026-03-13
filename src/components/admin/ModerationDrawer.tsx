@@ -264,13 +264,13 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                             </div>
                             <div className="space-y-1">
                                 <h1 className="text-white font-serif text-3xl font-bold tracking-tight">
-                                    Modération : <span className="text-[#B79A63]">{item.commercial_name || item.display_name}</span>
+                                    Modération : <span className="text-[#B79A63]">{item?.commercial_name || item?.display_name || 'Chargement...'}</span>
                                 </h1>
                                 <div className="flex items-center gap-3">
                                     <UnifiedBadge status="pending" size="sm" className="bg-[#B79A63]/20 text-[#B79A63] border-[#B79A63]/30">
                                         {isNewCreation ? "Nouvelle Inscription" : "Mise à jour"}
                                     </UnifiedBadge>
-                                    <span className="text-slate-400 text-sm italic opacity-80">Soumis le {new Date(item.created_at).toLocaleDateString()}</span>
+                                    <span className="text-slate-400 text-sm italic opacity-80">Soumis le {item?.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}</span>
                                 </div>
                             </div>
                         </div>
