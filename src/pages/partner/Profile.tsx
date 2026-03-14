@@ -538,7 +538,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                         </div>
                                         <div className="space-y-1">
                                             <h3 className="font-serif font-bold text-xl text-orange-600">
-                                                En cours de validation
+                                                En attente de validation
                                             </h3>
                                             <p className="text-orange-500 max-w-2xl text-sm leading-relaxed">
                                                 Votre profil a bien été enregistré et est actuellement en cours d'examen par notre équipe de modération.
@@ -569,7 +569,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                         <Clock className="w-5 h-5 text-blue-500" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-sm text-blue-700 uppercase tracking-wide">Modifications en cours de validation</h3>
+                                        <h3 className="font-bold text-sm text-blue-700 uppercase tracking-wide">Validé (Mises à jour en attente)</h3>
                                         <p className="text-blue-600 text-sm">Votre vitrine est en ligne avec l'ancienne version. Les nouvelles infos seront publiées après validation.</p>
                                     </div>
                                 </div>
@@ -581,7 +581,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                         <CheckCircle className="w-5 h-5 text-emerald-500" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-sm text-emerald-700 uppercase tracking-wide">Vitrine active &amp; visible</h3>
+                                        <h3 className="font-bold text-sm text-emerald-700 uppercase tracking-wide">Validé</h3>
                                         <p className="text-emerald-600 text-sm">Votre profil est validé. Vous êtes visible par les futurs mariés sur Far7i.</p>
                                     </div>
                                 </div>
@@ -596,7 +596,7 @@ export default function Profile({ providerIdProp, isNewProp }: { providerIdProp?
                                         <AlertCircle className="w-5 h-5 text-red-500" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-sm text-red-700 uppercase tracking-wide">Modifications requises</h3>
+                                        <h3 className="font-bold text-sm text-red-700 uppercase tracking-wide">Rejeté</h3>
                                         <p className="text-red-600 text-sm">Votre profil a été refusé. Veuillez consulter les notes de l'administrateur et corriger les informations demandées.</p>
                                     </div>
                                 </div>

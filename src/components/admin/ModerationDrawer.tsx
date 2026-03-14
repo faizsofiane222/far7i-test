@@ -40,10 +40,13 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
         if (!item) return;
         try {
             setIsSubmitting(true);
-            const tableName = type === 'profile' ? 'users' : (type === 'prestation' ? 'providers' : 'reviews');
-            const { error } = await (supabase as any).rpc('approve_moderation_item', {
-                p_table: tableName,
-                p_id: item.id
+            
+            const rpcName = type === 'profile' ? 'handle_profile_moderation' : 'handle_prestation_moderation';
+            const idKey = type === 'profile' ? 'p_user_id' : 'p_provider_id';
+            
+            const { error } = await (supabase as any).rpc(rpcName, {
+                [idKey]: item.id,
+                p_action: 'approve'
             });
 
             if (error) throw error;
@@ -66,10 +69,13 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
 
         try {
             setIsSubmitting(true);
-            const tableName = type === 'profile' ? 'users' : (type === 'prestation' ? 'providers' : 'reviews');
-            const { error } = await (supabase as any).rpc('reject_moderation_item', {
-                p_table: tableName,
-                p_id: item.id,
+            
+            const rpcName = type === 'profile' ? 'handle_profile_moderation' : 'handle_prestation_moderation';
+            const idKey = type === 'profile' ? 'p_user_id' : 'p_provider_id';
+
+            const { error } = await (supabase as any).rpc(rpcName, {
+                [idKey]: item.id,
+                p_action: 'reject',
                 p_reason: rejectionReason
             });
 
@@ -269,7 +275,7 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                                 </h1>
                                 <div className="flex items-center gap-3">
                                     <UnifiedBadge status="pending" size="sm" className="bg-[#B79A63]/20 text-[#B79A63] border-[#B79A63]/30">
-                                        {isNewCreation ? "Nouvelle Inscription" : "Mise à jour"}
+                                        En attente de validation
                                     </UnifiedBadge>
                                     <span className="text-slate-400 text-sm italic opacity-80">Soumis le {item?.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}</span>
                                 </div>

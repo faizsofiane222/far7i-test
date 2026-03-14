@@ -77,13 +77,12 @@ export default function AdminPartners() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'approved': 
-                return <UnifiedBadge status="approved" size="sm" className="bg-emerald-100 text-emerald-700 border-emerald-200">Approuvé</UnifiedBadge>;
+                return <UnifiedBadge status="approved" size="sm" className="bg-emerald-100 text-emerald-700 border-emerald-200">Validé</UnifiedBadge>;
             case 'rejected': 
-                return <UnifiedBadge status="rejected" size="sm" className="bg-red-100 text-red-700 border-red-200">Refusé</UnifiedBadge>;
+                return <UnifiedBadge status="rejected" size="sm" className="bg-red-100 text-red-700 border-red-200">Rejeté</UnifiedBadge>;
             case 'pending': 
-                return <UnifiedBadge status="pending" size="sm" className="bg-orange-100 text-orange-700 border-orange-200 animate-pulse">À Valider</UnifiedBadge>;
             case 'incomplete':
-                return <UnifiedBadge status="draft" size="sm" className="bg-slate-100 text-slate-600 border-slate-200">Incomplet</UnifiedBadge>;
+                return <UnifiedBadge status="pending" size="sm" className="bg-orange-100 text-orange-700 border-orange-200 animate-pulse">En attente de validation</UnifiedBadge>;
             default: 
                 return <UnifiedBadge status="draft" size="sm">{status}</UnifiedBadge>;
         }
@@ -112,7 +111,7 @@ export default function AdminPartners() {
                         <div className="bg-white/50 backdrop-blur-sm border border-[#D4D2CF] rounded-2xl px-4 py-2 flex items-center gap-2 shadow-sm">
                             <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                             <span className="text-sm font-bold text-slate-700">
-                                {partners.reduce((acc, p) => acc + ((p.prestations?.some(pr => pr.status === 'pending') || p.profile?.status === 'pending') ? 1 : 0), 0)} En attente
+                                {partners.reduce((acc, p) => acc + ((p.prestations?.some(pr => pr.status === 'pending') || p.profile?.status === 'pending') ? 1 : 0), 0)} En attente de validation
                             </span>
                         </div>
                     </div>
@@ -202,22 +201,22 @@ export default function AdminPartners() {
                                                 {pendingItems.length > 0 ? (
                                                     <div className="flex items-center gap-2 bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
                                                         <Clock className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
-                                                        <span className="text-xs font-bold text-orange-600 uppercase">Attention requise</span>
+                                                        <span className="text-xs font-bold text-orange-600 uppercase">En attente de validation</span>
                                                     </div>
                                                 ) : partner.profile?.status === 'approved' ? (
                                                     <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                                                         <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                                                        <span className="text-xs font-bold text-emerald-600 uppercase">Vérifié</span>
+                                                        <span className="text-xs font-bold text-emerald-600 uppercase">Validé</span>
                                                     </div>
                                                 ) : partner.profile?.status === 'rejected' ? (
                                                     <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-full border border-red-100">
                                                         <XCircle className="w-3.5 h-3.5 text-red-500" />
-                                                        <span className="text-xs font-bold text-red-600 uppercase">Refusé</span>
+                                                        <span className="text-xs font-bold text-red-600 uppercase">Rejeté</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
                                                         <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                                        <span className="text-xs font-bold text-slate-500 uppercase">En attente</span>
+                                                        <span className="text-xs font-bold text-slate-500 uppercase">En attente de validation</span>
                                                     </div>
                                                 )}
                                             </div>
