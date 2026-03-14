@@ -150,21 +150,22 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                         </div>
                         <p className="text-xl text-slate-500 font-medium">@{item.email?.split('@')[0]}</p>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <InfoCard 
                             icon={Briefcase} 
                             label="Type de Prestataire" 
                             value={
-                                (pendingUpdates?.provider_type || item.provider_type) === 'solo' 
+                                ['solo', 'individual'].includes(pendingUpdates?.provider_type || item.provider_type)
                                 ? "Indépendant / Freelance" 
-                                : "Agence / Équipe"
+                                : (pendingUpdates?.provider_type || item.provider_type) === 'agency'
+                                ? "Agence / Équipe"
+                                : (pendingUpdates?.provider_type || item.provider_type)
                             } 
                             modified={isFieldModified('provider_type')} 
                         />
                         <InfoCard icon={Phone} label="Téléphone" value={pendingUpdates?.phone_number || item.phone_number} modified={isFieldModified('phone_number')} />
                         <InfoCard icon={MapPin} label="Wilaya" value={getWilayaName(pendingUpdates?.wilaya_id || item.wilaya_id)} modified={isFieldModified('wilaya_id')} />
-                        <InfoCard icon={Globe} label="Lien Réseau Social" value={pendingUpdates?.social_link || item.social_link} modified={isFieldModified('social_link')} />
+                        <InfoCard icon={Globe} label="Lien Réseau Social (Instagram/Facebook)" value={pendingUpdates?.social_link || item.social_link} modified={isFieldModified('social_link')} />
                     </div>
                 </div>
             </div>
