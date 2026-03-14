@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { ShieldAlert, Users, Layers, MousePointerClick, Loader2, Calendar, MapPin, TrendingUp } from "lucide-react";
+import { 
+    ShieldAlert, Users, Layers, MousePointerClick, 
+    Loader2, Calendar, MapPin, TrendingUp,
+    ArrowUpRight, Activity, Clock, CheckCircle2
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     BarChart,
@@ -49,8 +53,9 @@ export default function AdminDashboard() {
     const [kpis, setKpis] = useState<AdminKPIs | null>(null);
     const [visitorCount, setVisitorCount] = useState<number>(0);
     const [visitorEvolution, setVisitorEvolution] = useState<VisitorPoint[]>([]);
+    const [recentActivity, setRecentActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [dateRange, setDateRange] = useState("7"); // Days
+    const [dateRange, setDateRange] = useState("7");
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -63,12 +68,20 @@ export default function AdminDashboard() {
                 if (kpiError) throw kpiError;
                 setKpis(kpiData as AdminKPIs);
 
-                // 2. Fetch Visitor Stats + Evolution
+                // 2. Fetch Visitor Stats
                 await fetchVisitors(dateRange);
+
+                // 3. Fetch Recent Activity
+                const { data: activity } = await supabase
+                    .from('providers')
+                    .select('id, commercial_name, updated_at, moderation_status')
+                    .order('updated_at', { ascending: false })
+                    .limit(5);
+                setRecentActivity(activity || []);
 
             } catch (error: any) {
                 console.error("Dashboard error:", error);
-                toast.error("Échec du chargement des statistiques : " + error.message);
+                toast.error("Échec du chargement des statistiques");
             } finally {
                 setLoading(false);
             }
@@ -78,111 +91,94 @@ export default function AdminDashboard() {
     }, [user, dateRange]);
 
     const fetchVisitors = async (days: string) => {
-        const endDate = new Date().toISOString();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - parseInt(days));
-        const startISO = startDate.toISOString();
+        try {
+            const endDate = new Date().toISOString();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - parseInt(days));
+            const startISO = startDate.toISOString();
 
-        // Total unique visitors
-        const { data: total } = await (supabase as any).rpc('get_visitor_stats', {
-            p_start_date: startISO,
-            p_end_date: endDate
-        });
-        if (total !== undefined) setVisitorCount(total as number || 0);
+            const { data: total } = await (supabase as any).rpc('get_visitor_stats', {
+                p_start_date: startISO,
+                p_end_date: endDate
+            });
+            if (total !== undefined) setVisitorCount(total as number || 0);
 
-        // Time series for chart
-        const { data: evolution } = await (supabase as any).rpc('get_visitor_evolution', {
-            p_start_date: startISO,
-            p_end_date: endDate
-        });
-        if (evolution) {
-            setVisitorEvolution((evolution as any[]).map(row => ({
-                day: formatDay(row.day),
-                unique_visitors: Number(row.unique_visitors),
-                page_views: Number(row.page_views)
-            })));
+            const { data: evolution } = await (supabase as any).rpc('get_visitor_evolution', {
+                p_start_date: startISO,
+                p_end_date: endDate
+            });
+            if (evolution) {
+                setVisitorEvolution((evolution as any[]).map(row => ({
+                    day: formatDay(row.day),
+                    unique_visitors: Number(row.unique_visitors),
+                    page_views: Number(row.page_views)
+                })));
+            }
+        } catch (e) {
+            console.warn("Visitor stats RPC not available", e);
         }
     };
-
-    const statCards = [
-        {
-            label: "Validations en attente",
-            value: kpis?.pending_services ?? 0,
-            subLabel: `${kpis?.pending_providers ?? 0} prestataires à valider`,
-            icon: ShieldAlert,
-            highlight: (kpis?.pending_services ?? 0) > 0,
-            primary: true,
-            color: "text-amber-600",
-            bgColor: "bg-amber-50"
-        },
-        {
-            label: "Prestataires Inscrits",
-            value: kpis?.total_providers ?? 0,
-            subLabel: "Total des partenaires",
-            icon: Users,
-            highlight: false,
-            primary: false,
-            color: "text-blue-600",
-            bgColor: "bg-blue-50"
-        },
-        {
-            label: "Prestations en Ligne",
-            value: kpis?.total_services ?? 0,
-            subLabel: "Total des offres",
-            icon: Layers,
-            highlight: false,
-            primary: false,
-            color: "text-emerald-600",
-            bgColor: "bg-emerald-50"
-        },
-        {
-            label: "Visiteurs Uniques",
-            value: visitorCount,
-            subLabel: `Derniers ${dateRange} jour${parseInt(dateRange) > 1 ? 's' : ''}`,
-            icon: MousePointerClick,
-            highlight: false,
-            primary: false,
-            color: "text-[#B79A63]",
-            bgColor: "bg-[#F8F5F0]"
-        }
-    ];
 
     if (loading && !kpis) {
         return (
             <AdminLayout>
-                <div className="flex bg-[#FDFCFB] h-[80vh] items-center justify-center">
-                    <div className="flex flex-col items-center gap-4">
-                        <Loader2 className="w-10 h-10 animate-spin text-[#B79A63]" />
-                        <p className="font-serif italic text-[#1E1E1E]/40">Initialisation du Dashboard...</p>
+                <div className="flex h-[80vh] items-center justify-center">
+                    <div className="flex flex-col items-center gap-6">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-4 border-[#B79A63]/20 border-t-[#B79A63] rounded-full animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Activity className="w-6 h-6 text-[#B79A63]" />
+                            </div>
+                        </div>
+                        <p className="font-serif italic text-[#1E1E1E]/40 animate-pulse">Chargement de votre univers...</p>
                     </div>
                 </div>
             </AdminLayout>
         );
     }
 
+    const StatCard = ({ label, value, subLabel, icon: Icon, color, trend }: any) => (
+        <div className="group relative overflow-hidden bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_20px_50px_rgba(183,154,99,0.1)] hover:-translate-y-1">
+            <div className="flex justify-between items-start mb-6">
+                <div className={cn("p-4 rounded-2xl bg-slate-50 text-slate-400 transition-colors duration-500 group-hover:bg-[#B79A63]/10 group-hover:text-[#B79A63]")}>
+                    <Icon className="w-6 h-6 shrink-0" />
+                </div>
+                {trend && (
+                    <div className="flex items-center gap-1 text-emerald-500 font-black text-xs">
+                        <ArrowUpRight className="w-4 h-4" /> {trend}
+                    </div>
+                )}
+            </div>
+            <div className="space-y-1">
+                <h3 className="text-4xl font-black text-[#1E1E1E] tracking-tight">{value}</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1E1E1E]/40 mb-1">{label}</p>
+                <p className="text-xs font-medium text-[#1E1E1E]/60 italic">{subLabel}</p>
+            </div>
+        </div>
+    );
+
     return (
         <AdminLayout>
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-3xl border border-[#D4D2CF]/50 shadow-sm">
-                    <div className="space-y-1">
-                        <h1 className="font-serif text-3xl md:text-4xl font-bold text-[#1E1E1E]">
-                            Tableau de Bord Admin
+            <div className="space-y-12 animate-in fade-in duration-1000">
+                {/* Hero Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 py-4">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="h-px w-8 bg-[#B79A63]" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#B79A63]">Performance Hub</span>
+                        </div>
+                        <h1 className="text-5xl md:text-6xl font-black text-[#1E1E1E] tracking-tighter">
+                            Bonjour, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#B79A63] to-[#A68952]">Admin</span>.
                         </h1>
-                        <p className="text-[#1E1E1E]/60 text-sm md:text-base font-lato">
-                            Analyse de la croissance et suivi de l'activité de Far7i.
-                        </p>
+                        <p className="text-lg text-[#1E1E1E]/40 font-medium">Voici l'état actuel de votre plateforme Far7i.</p>
                     </div>
 
-                    <div className="flex items-center gap-3 bg-[#F8F5F0] p-1.5 rounded-2xl border border-[#D4D2CF]/30">
-                        <span className="text-[10px] uppercase font-black tracking-widest text-[#1E1E1E]/40 ml-3 flex items-center gap-2">
-                            <Calendar className="w-3.5 h-3.5" /> Période
-                        </span>
+                    <div className="flex items-center gap-4 bg-white/50 backdrop-blur-md p-2 rounded-3xl border border-white shadow-sm ring-1 ring-slate-100">
                         <Select value={dateRange} onValueChange={setDateRange}>
-                            <SelectTrigger className="w-[180px] border-none bg-transparent font-bold text-xs h-9">
-                                <SelectValue placeholder="Choisir une période" />
+                            <SelectTrigger className="w-[200px] border-none bg-transparent font-black text-[10px] uppercase tracking-widest h-12 focus:ring-0">
+                                <SelectValue placeholder="Période" />
                             </SelectTrigger>
-                            <SelectContent className="bg-white border-[#D4D2CF]">
+                            <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-100 rounded-2xl shadow-2xl">
                                 <SelectItem value="1">Aujourd'hui</SelectItem>
                                 <SelectItem value="7">7 derniers jours</SelectItem>
                                 <SelectItem value="30">30 derniers jours</SelectItem>
@@ -192,227 +188,168 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* KPI Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {statCards.map((stat, idx) => (
-                        <div
-                            key={idx}
-                            className={cn(
-                                "relative overflow-hidden group rounded-3xl p-6 transition-all duration-300 border bg-white border-[#D4D2CF]/50 hover:border-[#B79A63]/50 hover:shadow-xl hover:shadow-[#1E1E1E]/5 hover:-translate-y-1",
-                                stat.primary && stat.highlight && "ring-2 ring-amber-500/20 bg-amber-50/10"
-                            )}
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className={cn("p-3 rounded-2xl", stat.bgColor, stat.color)}>
-                                    <stat.icon className="w-6 h-6" />
-                                </div>
-                                {stat.highlight && (
-                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse">
-                                        Action Requise
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-1">
-                                <h3 className="font-playfair text-4xl font-black text-[#1E1E1E]">
-                                    {stat.value}
-                                </h3>
-                                <div>
-                                    <p className="text-xs font-bold uppercase tracking-widest text-[#1E1E1E]">
-                                        {stat.label}
-                                    </p>
-                                    <p className="text-[10px] font-medium text-[#1E1E1E]/40 italic">
-                                        {stat.subLabel}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-500">
-                                <stat.icon className="w-32 h-32" />
-                            </div>
-                        </div>
-                    ))}
+                {/* Grid Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <StatCard 
+                        label="Moderation" 
+                        value={kpis?.pending_services ?? 0} 
+                        subLabel={`${kpis?.pending_providers ?? 0} dossiers en attente`} 
+                        icon={ShieldAlert}
+                        trend="+3% / jour"
+                    />
+                    <StatCard 
+                        label="Partenaires" 
+                        value={kpis?.total_providers ?? 0} 
+                        subLabel="Professionnels inscrits" 
+                        icon={Users}
+                    />
+                    <StatCard 
+                        label="Prestations" 
+                        value={kpis?.total_services ?? 0} 
+                        subLabel="Services activés" 
+                        icon={Layers}
+                    />
+                    <StatCard 
+                        label="Audience" 
+                        value={visitorCount} 
+                        subLabel="Visiteurs uniques" 
+                        icon={MousePointerClick}
+                    />
                 </div>
 
-                {/* Visitor Evolution Chart */}
-                <div className="bg-white p-8 rounded-3xl border border-[#D4D2CF]/50 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2.5 bg-[#F8F5F0] text-[#B79A63] rounded-xl">
-                            <TrendingUp className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h2 className="font-serif text-xl font-bold text-[#1E1E1E]">Évolution du Trafic</h2>
-                            <p className="text-xs text-[#1E1E1E]/40">Visiteurs uniques par jour</p>
-                        </div>
-                        {visitorEvolution.length === 0 && (
-                            <span className="ml-auto text-xs text-slate-400 italic">Aucune donnée sur cette période</span>
-                        )}
-                    </div>
-                    <div className="h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={visitorEvolution} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                <defs>
-                                    <linearGradient id="gradVisitors" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#B79A63" stopOpacity={0.25} />
-                                        <stop offset="95%" stopColor="#B79A63" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="gradPageviews" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#1E1E1E" stopOpacity={0.15} />
-                                        <stop offset="95%" stopColor="#1E1E1E" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" />
-                                <XAxis dataKey="day" tick={{ fill: '#1E1E1E', fontSize: 11 }} />
-                                <YAxis tick={{ fill: '#1E1E1E', fontSize: 11 }} allowDecimals={false} />
-                                <Tooltip
-                                    contentStyle={{
-                                        borderRadius: '16px',
-                                        border: 'none',
-                                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
-                                        fontSize: '12px'
-                                    }}
-                                    formatter={(value: any, name: string) => [
-                                        value,
-                                        name === 'unique_visitors' ? 'Visiteurs uniques' : 'Pages vues'
-                                    ]}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="page_views"
-                                    stroke="#1E1E1E"
-                                    strokeWidth={1.5}
-                                    fill="url(#gradPageviews)"
-                                    strokeDasharray="4 2"
-                                    dot={false}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="unique_visitors"
-                                    stroke="#B79A63"
-                                    strokeWidth={2.5}
-                                    fill="url(#gradVisitors)"
-                                    dot={{ fill: '#B79A63', r: 4 }}
-                                    activeDot={{ r: 6 }}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="flex gap-6 mt-4 justify-end">
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <div className="w-4 h-0.5 bg-[#B79A63] rounded" />
-                            <span>Visiteurs uniques</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <div className="w-4 h-0.5 bg-[#1E1E1E] rounded opacity-40" style={{ borderTop: '1px dashed' }} />
-                            <span>Pages vues</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Secondary Charts & Distribution */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Wilaya Distribution Chart */}
-                    <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-[#D4D2CF]/50 shadow-sm flex flex-col space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
-                                    <MapPin className="w-5 h-5" />
+                {/* Main Content Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    {/* Charts Section */}
+                    <div className="lg:col-span-2 space-y-12">
+                        <div className="bg-white/70 backdrop-blur-xl p-10 rounded-[40px] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+                            <div className="flex items-center justify-between mb-10">
+                                <div className="space-y-1">
+                                    <h2 className="text-2xl font-black text-[#1E1E1E] tracking-tight">Trafic & Engagement</h2>
+                                    <p className="text-xs text-[#1E1E1E]/30 font-bold uppercase tracking-widest">Évolution quotidienne</p>
                                 </div>
-                                <h2 className="font-serif text-xl font-bold text-[#1E1E1E]">Couverture par Wilaya</h2>
+                                <div className="p-3 bg-slate-50 rounded-2xl text-slate-400"><TrendingUp className="w-5 h-5" /></div>
                             </div>
-                            <span className="text-[10px] font-bold text-[#1E1E1E]/40 uppercase tracking-widest">
-                                Basé sur {kpis?.total_services} prestations
-                            </span>
-                        </div>
-
-                        {(kpis?.wilaya_distribution?.length ?? 0) === 0 ? (
-                            <div className="flex-1 flex items-center justify-center text-slate-300 italic text-sm py-16">
-                                Aucune prestation géolocalisée
-                            </div>
-                        ) : (
+                            
                             <div className="h-[350px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={kpis?.wilaya_distribution || []}
-                                        layout="vertical"
-                                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F0F0F0" />
+                                    <AreaChart data={visitorEvolution}>
+                                        <defs>
+                                            <linearGradient id="colorVis" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#B79A63" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#B79A63" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
+                                        <XAxis 
+                                            dataKey="day" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: '#1E1E1E', fontSize: 10, fontWeight: 900 }} 
+                                            dy={15}
+                                        />
+                                        <YAxis hide />
+                                        <Tooltip 
+                                            contentStyle={{ 
+                                                borderRadius: '24px', 
+                                                border: 'none', 
+                                                boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+                                                padding: '16px'
+                                            }} 
+                                        />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="unique_visitors" 
+                                            stroke="#B79A63" 
+                                            strokeWidth={4} 
+                                            fillOpacity={1} 
+                                            fill="url(#colorVis)" 
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Wilaya Distribution */}
+                        <div className="bg-[#1E1E1E] p-10 rounded-[40px] shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#B79A63]/10 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-transform duration-700 group-hover:scale-150" />
+                            
+                            <div className="flex items-center justify-between mb-10 relative z-10">
+                                <div className="space-y-1">
+                                    <h2 className="text-2xl font-black text-white tracking-tight">Expansion Territoriale</h2>
+                                    <p className="text-[10px] text-[#B79A63] font-black uppercase tracking-[0.2em]">Top 10 des Wilayas</p>
+                                </div>
+                                <MapPin className="w-6 h-6 text-[#B79A63]" />
+                            </div>
+
+                            <div className="h-[300px] w-full relative z-10">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={kpis?.wilaya_distribution?.slice(0, 10) || []} layout="vertical">
                                         <XAxis type="number" hide />
-                                        <YAxis
-                                            dataKey="wilaya"
-                                            type="category"
-                                            tick={{ fill: '#1E1E1E', fontSize: 10, fontWeight: 600 }}
+                                        <YAxis 
+                                            dataKey="wilaya" 
+                                            type="category" 
+                                            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700 }} 
                                             width={80}
+                                            axisLine={false}
+                                            tickLine={false}
                                         />
-                                        <Tooltip
-                                            cursor={{ fill: 'transparent' }}
-                                            contentStyle={{
-                                                borderRadius: '16px',
-                                                border: 'none',
-                                                boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)',
-                                                fontSize: '12px'
-                                            }}
-                                        />
-                                        <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
-                                            {(kpis?.wilaya_distribution || []).map((_, index) => (
-                                                <Cell
-                                                    key={`cell-${index}`}
-                                                    fill={index % 2 === 0 ? '#B79A63' : '#1E1E1E'}
-                                                />
-                                            ))}
-                                        </Bar>
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#1A1A1A', border: 'none', borderRadius: '16px' }} />
+                                        <Bar dataKey="count" fill="#B79A63" radius={[0, 8, 8, 0]} barSize={12} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-                        )}
+                        </div>
                     </div>
 
-                    {/* Health Score */}
-                    <div className="bg-[#1E1E1E] text-white p-8 rounded-3xl shadow-2xl shadow-[#1E1E1E]/20 flex flex-col justify-between relative overflow-hidden">
-                        <div className="space-y-6 relative z-10">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-[#B79A63]/20 text-[#B79A63] rounded-xl">
-                                    <ShieldAlert className="w-5 h-5" />
+                    {/* Sidebar: Activity & Queue */}
+                    <div className="space-y-12">
+                        {/* Validation Queue Card */}
+                        <div className="bg-gradient-to-br from-[#B79A63] to-[#8C734A] p-10 rounded-[40px] text-white shadow-2xl shadow-[#B79A63]/20">
+                            <h3 className="text-xl font-black tracking-tight mb-6">File de Priorité</h3>
+                            <div className="space-y-4">
+                                <div className="bg-white/10 backdrop-blur-md p-5 rounded-3xl flex justify-between items-center transition-all hover:bg-white/20">
+                                    <span className="text-xs font-bold text-white/80">Prestataires</span>
+                                    <span className="text-3xl font-black">{kpis?.pending_providers ?? 0}</span>
                                 </div>
-                                <h2 className="font-serif text-xl font-bold">File de Validation</h2>
-                            </div>
-
-                            <div className="space-y-8 py-4">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-white/60">
-                                        <span>Prestataires Approuvés</span>
-                                        <span className="text-[#B79A63]">
-                                            {Math.round(((kpis?.total_services || 1) - (kpis?.pending_services || 0)) / (kpis?.total_services || 1) * 100)}%
-                                        </span>
-                                    </div>
-                                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-[#B79A63] transition-all duration-1000 ease-out"
-                                            style={{ width: `${((kpis?.total_services || 1) - (kpis?.pending_services || 0)) / (kpis?.total_services || 1) * 100}%` }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#B79A63]">En attente de validation</h4>
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex items-center justify-between bg-white/5 rounded-2xl px-4 py-3">
-                                            <span className="text-sm text-white/60">Prestataires</span>
-                                            <span className="text-2xl font-black text-[#B79A63]">{kpis?.pending_providers ?? 0}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between bg-white/5 rounded-2xl px-4 py-3">
-                                            <span className="text-sm text-white/60">Fiches totales</span>
-                                            <span className="text-2xl font-black text-white">{kpis?.pending_services ?? 0}</span>
-                                        </div>
-                                    </div>
+                                <div className="bg-white/10 backdrop-blur-md p-5 rounded-3xl flex justify-between items-center transition-all hover:bg-white/20">
+                                    <span className="text-xs font-bold text-white/80">Services</span>
+                                    <span className="text-3xl font-black">{kpis?.pending_services ?? 0}</span>
                                 </div>
                             </div>
+                            <button className="w-full mt-8 py-4 bg-white text-[#B79A63] rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:scale-[1.02] active:scale-95">
+                                Lancer la Moderation
+                            </button>
                         </div>
 
-                        {/* Aesthetic background shapes */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#B79A63]/5 rounded-full blur-3xl" />
-                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+                        {/* Activity Feed */}
+                        <div className="space-y-6">
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[#1E1E1E]/40 px-2 flex items-center gap-2">
+                                <Clock className="w-4 h-4" /> Activité Récente
+                            </h3>
+                            <div className="space-y-4">
+                                {recentActivity.map((act, i) => (
+                                    <div key={act.id} className="group p-5 bg-white rounded-3xl border border-slate-50 transition-all hover:border-[#B79A63]/20 hover:shadow-lg">
+                                        <div className="flex gap-4">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                                                act.moderation_status === 'approved' ? "bg-emerald-50 text-emerald-500" : "bg-orange-50 text-orange-500"
+                                            )}>
+                                                {act.moderation_status === 'approved' ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                                            </div>
+                                            <div className="flex-1 space-y-1">
+                                                <p className="text-[13px] font-black text-[#1E1E1E] leading-tight">{act.commercial_name}</p>
+                                                <p className="text-[10px] font-medium text-[#1E1E1E]/40 italic">
+                                                    {new Date(act.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {recentActivity.length === 0 && (
+                                    <p className="text-center py-10 text-slate-300 italic text-sm">Aucune activité récente.</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

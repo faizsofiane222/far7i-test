@@ -50,11 +50,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminProviders from "@/pages/admin/AdminProviders";
 import AdminPartners from "@/pages/admin/AdminPartners";
-import AdminProviderEditor from "@/pages/admin/AdminProviderEditor";
-import AdminServicesManager from "@/pages/admin/AdminServicesManager";
-import AdminServiceEditor from "@/pages/admin/AdminServiceEditor";
 import BlogList from "@/pages/admin/BlogList";
 import BlogEditor from "@/pages/admin/BlogEditor";
 import AdminMessagingPanel from "@/pages/admin/AdminMessagingPanel";
@@ -157,13 +153,7 @@ const App = () => (
 
                 {/* Admin Routes */}
                 <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                <Route path="/admin/providers" element={<AdminRoute><AdminProviders /></AdminRoute>} />
                 <Route path="/admin/partners" element={<AdminRoute><AdminPartners /></AdminRoute>} />
-                <Route path="/admin/providers/new" element={<AdminRoute><AdminProviderEditor /></AdminRoute>} />
-                <Route path="/admin/providers/:id" element={<AdminRoute><AdminProviderEditor /></AdminRoute>} />
-                <Route path="/admin/providers/:id/services" element={<AdminRoute><AdminServicesManager /></AdminRoute>} />
-                <Route path="/admin/providers/:id/services/new" element={<AdminRoute><AdminServiceEditor /></AdminRoute>} />
-                <Route path="/admin/providers/:id/services/:serviceId/edit" element={<AdminRoute><AdminServiceEditor /></AdminRoute>} />
 
                 <Route path="/admin/blog" element={<AdminRoute><BlogList /></AdminRoute>} />
                 <Route path="/admin/blog/new" element={<AdminRoute><BlogEditor /></AdminRoute>} />

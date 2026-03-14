@@ -58,7 +58,7 @@ export function NotificationCenter({ unreadCount, onRead }: NotificationCenterPr
     const fetchNotifications = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from("notifications")
                 .select("*")
                 .eq("user_id", user?.id)
@@ -82,7 +82,7 @@ export function NotificationCenter({ unreadCount, onRead }: NotificationCenterPr
             );
 
             // Call API
-            supabase.rpc("mark_notification_read", { notification_id: notif.id }).then(({ error }) => {
+            (supabase as any).rpc("mark_notification_read", { notification_id: notif.id }).then(({ error }: any) => {
                 if (!error) {
                     onRead(); // Trigger global count update
                 }
@@ -98,7 +98,7 @@ export function NotificationCenter({ unreadCount, onRead }: NotificationCenterPr
 
     const handleMarkAllRead = async () => {
         try {
-            const { error } = await supabase.rpc("mark_all_notifications_read");
+            const { error } = await (supabase as any).rpc("mark_all_notifications_read");
             if (error) throw error;
 
             setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -113,7 +113,7 @@ export function NotificationCenter({ unreadCount, onRead }: NotificationCenterPr
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            const { error } = await supabase.from("notifications").delete().eq("id", id);
+            const { error } = await (supabase as any).from("notifications").delete().eq("id", id);
             if (error) throw error;
 
             setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -241,10 +241,32 @@ export function NotificationCenter({ unreadCount, onRead }: NotificationCenterPr
                     </div>
 
                     <div className="p-6 space-y-6">
-                        <div className="bg-white p-4 rounded-xl border border-[#D4D2CF]/50 shadow-sm">
+                        <div className="bg-white p-4 rounded-xl border border-[#D4D2CF]/50 shadow-sm space-y-4">
                             <p className="text-[#1E1E1E] text-sm leading-relaxed whitespace-pre-wrap">
                                 {selectedNotif?.message}
                             </p>
+                            
+                            {selectedNotif?.data?.rejection_reason && (
+                                <div className="mt-4 p-4 bg-red-50 rounded-xl border border-red-100">
+                                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" /> Remarque de l'admin
+                                    </p>
+                                    <p className="text-red-700 text-sm font-medium italic">
+                                        "{selectedNotif.data.rejection_reason}"
+                                    </p>
+                                </div>
+                            )}
+
+                            {selectedNotif?.data?.diff && (
+                                <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                        <Info className="w-3 h-3" /> Champs modifiés
+                                    </p>
+                                    <p className="text-blue-700 text-xs font-semibold">
+                                        {Object.keys(selectedNotif.data.diff).length} champ(s) mis à jour
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">

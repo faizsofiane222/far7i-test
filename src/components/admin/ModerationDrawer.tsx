@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
     X, Check, AlertCircle, Trash2,
     Instagram, Facebook, Globe, Phone, MapPin,
@@ -7,8 +7,9 @@ import {
     Store, Smartphone, Star, LayoutGrid, Heart,
     CheckCircle2, XCircle, ChevronRight, Loader2, MessageSquare,
     Image as ImageIcon, ListChecks, DollarSign,
-    Milestone, BadgeInfo
+    Milestone, BadgeInfo, History, ExternalLink, Building2
 } from "lucide-react";
+import { ProfileDiffViewer } from "./ProfileDiffViewer";
 import {
     Sheet,
     SheetContent,
@@ -22,21 +23,22 @@ import { supabase } from "@/integrations/supabase/client";
 interface ModerationDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    item: any;
-    type: 'profile' | 'prestation' | 'review';
-    onActionComplete: () => void;
+    data: any;
+    itemType: 'profile' | 'prestation' | 'review';
+    parentId?: string;
+    onStatusChange: () => void;
 }
 
-export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete }: ModerationDrawerProps) {
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [rejectionReason, setRejectionReason] = React.useState("");
-    const [showRejectionInput, setShowRejectionInput] = React.useState(false);
-    const [wilayas, setWilayas] = React.useState<any[]>([]);
+export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, onStatusChange }: ModerationDrawerProps) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
+    const [showRejectionInput, setShowRejectionInput] = useState(false);
+    const [wilayas, setWilayas] = useState<any[]>([]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchWilayas = async () => {
-            const { data } = await supabase.from('wilayas').select('*').order('code');
-            if (data) setWilayas(data);
+            const { data: w } = await supabase.from('wilayas').select('*').order('code');
+            if (w) setWilayas(w);
         };
         fetchWilayas();
     }, []);
@@ -47,61 +49,35 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
         return w ? `${w.code} - ${w.name}` : id;
     };
 
-    const pendingUpdates = item?.pending_updates;
-    const isNewCreation = !pendingUpdates && (item?.status === 'pending' || item?.status === 'incomplete');
+    const pendingUpdates = data?.pending_updates;
     const isModification = !!pendingUpdates;
 
-    const handleApprove = async () => {
-        if (!item) return;
-        try {
-            setIsSubmitting(true);
-            
-            const rpcName = type === 'profile' ? 'handle_profile_moderation' : 'handle_prestation_moderation';
-            const idKey = type === 'profile' ? 'p_user_id' : 'p_provider_id';
-            const targetId = type === 'profile' ? item.user_id : item.id;
-            
-            const { error } = await (supabase as any).rpc(rpcName, {
-                [idKey]: targetId,
-                p_action: 'approve'
-            });
-
-            if (error) throw error;
-            toast.success("Élément approuvé avec succès");
-            onActionComplete();
-            onClose();
-        } catch (error: any) {
-            toast.error("Erreur: " + error.message);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleReject = async () => {
-        if (!item) return;
-        if (!rejectionReason) {
+    const handleAction = async (action: 'approve' | 'reject') => {
+        if (!data) return;
+        if (action === 'reject' && !rejectionReason) {
             setShowRejectionInput(true);
             return;
         }
 
         try {
             setIsSubmitting(true);
-            
-            const rpcName = type === 'profile' ? 'handle_profile_moderation' : 'handle_prestation_moderation';
-            const idKey = type === 'profile' ? 'p_user_id' : 'p_provider_id';
-            const targetId = type === 'profile' ? item.user_id : item.id;
+            const rpcName = itemType === 'profile' ? 'handle_profile_moderation' : 'handle_prestation_moderation';
+            const idKey = itemType === 'profile' ? 'p_user_id' : 'p_provider_id';
+            const targetId = itemType === 'profile' ? (data.user_id || data.id) : data.id;
 
             const { error } = await (supabase as any).rpc(rpcName, {
                 [idKey]: targetId,
-                p_action: 'reject',
-                p_reason: rejectionReason
+                p_action: action,
+                p_reason: action === 'reject' ? rejectionReason : null
             });
 
             if (error) throw error;
-            toast.success("Élément refusé");
-            onActionComplete();
+            toast.success(action === 'approve' ? "Approuvé avec succès" : "Élément rejeté");
+            onStatusChange();
             onClose();
         } catch (error: any) {
-            toast.error("Erreur: " + error.message);
+            console.error("Moderation error:", error);
+            toast.error(`Erreur: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -109,321 +85,267 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
 
     const isFieldModified = (key: string) => {
         if (!isModification || !pendingUpdates) return false;
-        const oldVal = item[key];
+        const oldVal = data[key];
         const newVal = pendingUpdates[key];
-
         if (oldVal === newVal) return false;
-        if (!oldVal && !newVal) return false;
-
-        if (typeof oldVal !== typeof newVal) return true;
-        if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) return true;
         return true;
     };
 
-    // Immersive Profile View (Matches Profile.tsx layout)
-    const ProfileModerationView = () => (
-        <div className="space-y-10 animate-in fade-in duration-500 pb-20">
-            {/* Top Identity Block */}
-            <div className="flex flex-col md:flex-row gap-10">
-                <div className="md:w-1/3 xl:w-1/4 flex flex-col items-center">
-                    <div className="w-48 h-48 rounded-3xl overflow-hidden border-4 border-white shadow-2xl relative group">
-                        <img 
-                            src={pendingUpdates?.profile_picture_url || item.profile_picture_url || "https://api.dicebear.com/7.x/initials/svg?seed=" + (item.display_name || 'P')} 
-                            className="w-full h-full object-cover" 
-                            alt="Avatar" 
-                        />
-                        {(isFieldModified('profile_picture_url')) && (
-                            <div className="absolute inset-0 bg-blue-500/20 backdrop-blur-[2px] flex items-center justify-center">
-                                <UnifiedBadge className="bg-blue-600 text-white shadow-lg">Nouvelle Photo</UnifiedBadge>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex-1 space-y-8">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                           <h2 className="text-4xl font-serif font-bold text-[#1E1E1E]">
-                                {pendingUpdates?.commercial_name || item.commercial_name || item.display_name}
-                           </h2>
-                           {isFieldModified('commercial_name') && <UnifiedBadge status="pending">Modifié</UnifiedBadge>}
-                        </div>
-                        <p className="text-xl text-slate-500 font-medium">@{item.email?.split('@')[0]}</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InfoCard 
-                            icon={Briefcase} 
-                            label="Type de Prestataire" 
-                            value={
-                                ['solo', 'individual'].includes(pendingUpdates?.provider_type || item.provider_type)
-                                ? "Indépendant / Freelance" 
-                                : (pendingUpdates?.provider_type || item.provider_type) === 'agency'
-                                ? "Agence / Équipe"
-                                : (pendingUpdates?.provider_type || item.provider_type)
-                            } 
-                            modified={isFieldModified('provider_type')} 
-                        />
-                        <InfoCard icon={Phone} label="Téléphone" value={pendingUpdates?.phone_number || item.phone_number} modified={isFieldModified('phone_number')} />
-                        <InfoCard icon={MapPin} label="Wilaya" value={getWilayaName(pendingUpdates?.wilaya_id || item.wilaya_id)} modified={isFieldModified('wilaya_id')} />
-                        <InfoCard icon={Globe} label="Lien Réseau Social (Instagram/Facebook)" value={pendingUpdates?.social_link || item.social_link} modified={isFieldModified('social_link')} />
-                    </div>
-                </div>
+    const SectionHeader = ({ icon: Icon, title, subtitle, color = "text-[#B79A63]" }: any) => (
+        <div className="flex items-center gap-4 mb-8">
+            <div className={cn("p-3 rounded-2xl bg-white border border-slate-100 shadow-sm", color)}>
+                <Icon className="w-6 h-6" />
             </div>
+            <div>
+                <h3 className="text-xl font-black text-[#1E1E1E] tracking-tight">{title}</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{subtitle}</p>
+            </div>
+        </div>
+    );
 
-            {/* Contact Details Full */}
-            <div className="space-y-6">
-                <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Mail className="w-3.5 h-3.5" /> Email (Non modifiable)
-                    </p>
-                    <div className="w-full h-12 flex items-center rounded-2xl border border-[#D4D2CF] bg-[#F8F5F0]/80 px-4 py-2 text-sm text-[#1E1E1E] font-semibold">
-                        {item.email}
+    const ProfileView = () => (
+        <div className="space-y-12 pb-24 animate-in fade-in duration-700">
+            {/* 1. Modifications Audit (Highest Priority) */}
+            {isModification && (
+                <div className="bg-blue-50/50 rounded-[32px] border border-blue-100 p-8 space-y-6">
+                    <SectionHeader 
+                        icon={History} 
+                        title="Audit des Modifications" 
+                        subtitle="Comparaison Avant/Après" 
+                        color="text-blue-600"
+                    />
+                    <ProfileDiffViewer oldData={data} newData={pendingUpdates} />
+                </div>
+            )}
+
+            {/* 2. Global Mirror (Mirrors Profile.tsx) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                {/* Lateral Admin Info */}
+                <div className="lg:col-span-4 space-y-8">
+                    <div className="p-8 bg-white border border-slate-100 rounded-[32px] shadow-sm flex flex-col items-center gap-6">
+                         <div className="w-40 h-40 rounded-[40px] overflow-hidden border-4 border-white shadow-2xl relative">
+                            <img 
+                                src={pendingUpdates?.profile_picture_url || data.profile_picture_url || "/placeholder.svg"} 
+                                className="w-full h-full object-cover" 
+                                alt="Avatar" 
+                            />
+                            {isFieldModified('profile_picture_url') && (
+                                <div className="absolute inset-x-0 bottom-0 bg-blue-500 py-1 flex items-center justify-center">
+                                    <span className="text-[8px] font-black text-white uppercase tracking-widest">Nouveau</span>
+                                </div>
+                            )}
+                         </div>
+                         <div className="text-center space-y-1">
+                            <h4 className="text-lg font-black text-[#1E1E1E] leading-tight">
+                                {pendingUpdates?.commercial_name || data.commercial_name || data.display_name}
+                            </h4>
+                            <p className="text-xs font-bold text-slate-400">{data.email}</p>
+                         </div>
+                         <div className="w-full h-px bg-slate-50" />
+                         <div className="w-full grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-black uppercase text-slate-400">Statut Actuel</p>
+                                <UnifiedBadge status={data.status || 'pending'} size="sm" className="w-full justify-center" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-black uppercase text-slate-400">Services</p>
+                                <p className="text-sm font-black text-[#1E1E1E] px-3">{(data as any).prestations_count || 0}</p>
+                            </div>
+                         </div>
                     </div>
+
+                    {data.rejection_reason && (
+                        <div className="p-6 bg-red-50 border border-red-100 rounded-[24px] space-y-2">
+                            <p className="text-[8px] font-black uppercase text-red-500 tracking-widest flex items-center gap-2">
+                                <AlertCircle className="w-3 h-3" /> Motif du Rejet Précédent
+                            </p>
+                            <p className="text-xs font-bold text-red-700 italic leading-relaxed">"{data.rejection_reason}"</p>
+                        </div>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <StatusCard 
-                        icon={Smartphone} 
-                        label="WhatsApp" 
-                        value={pendingUpdates?.is_whatsapp_active ?? item.is_whatsapp_active ? 'Activé' : 'Désactivé'} 
-                        isActive={pendingUpdates?.is_whatsapp_active ?? item.is_whatsapp_active} 
-                    />
-                    <StatusCard 
-                        icon={Smartphone} 
-                        label="Viber" 
-                        value={pendingUpdates?.is_viber_active ?? item.is_viber_active ? 'Activé' : 'Désactivé'} 
-                        isActive={pendingUpdates?.is_viber_active ?? item.is_viber_active} 
-                    />
+                {/* Main Content Mirror */}
+                <div className="lg:col-span-8 space-y-8">
+                    <div className="bg-white border border-slate-100 rounded-[32px] p-8 md:p-10 shadow-sm space-y-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <Detail label="Type de Prestataire" icon={Building2} modified={isFieldModified('provider_type')}>
+                                {(pendingUpdates?.provider_type || data.provider_type) === 'agency' ? 'Agence' : 'Individuel'}
+                            </Detail>
+                            <Detail label="Wilaya" icon={MapPin} modified={isFieldModified('wilaya_id')}>
+                                {getWilayaName(pendingUpdates?.wilaya_id || data.wilaya_id)}
+                            </Detail>
+                            <Detail label="Téléphone" icon={Phone} modified={isFieldModified('phone_number')}>
+                                {pendingUpdates?.phone_number || data.phone_number}
+                            </Detail>
+                            <Detail label="Réseau Social" icon={Instagram} modified={isFieldModified('social_link')}>
+                                <a href={pendingUpdates?.social_link || data.social_link} target="_blank" className="text-blue-500 hover:underline flex items-center gap-1">
+                                    Lien externe <ExternalLink className="w-3 h-3" />
+                                </a>
+                            </Detail>
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Canaux de communication</p>
+                            <div className="flex flex-wrap gap-4">
+                                <Channel active={pendingUpdates?.is_whatsapp_active ?? data.is_whatsapp_active}>WhatsApp</Channel>
+                                <Channel active={pendingUpdates?.is_viber_active ?? data.is_viber_active}>Viber</Channel>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Biographie / Description</p>
+                            <div className={cn(
+                                "p-6 rounded-2xl bg-slate-50 text-sm font-medium leading-relaxed text-slate-600",
+                                isFieldModified('bio') && "ring-2 ring-blue-500/20 bg-blue-50/20"
+                            )}>
+                                {pendingUpdates?.bio || data.bio || "Aucune biographie fournie."}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     );
 
-    // Consolidated Service View (One scrollable page)
-    const ServiceModerationView = () => {
-        const specifics = item.specifics || {};
-        const gallery = item.gallery || [];
+    const PrestationView = () => (
+        <div className="space-y-12 pb-24 animate-in fade-in duration-700">
+             <div className="bg-white border border-slate-100 rounded-[32px] p-8 md:p-10 shadow-sm space-y-10">
+                <SectionHeader icon={Briefcase} title={data.commercial_name} subtitle={data.category_slug?.replace(/_/g, ' ')} />
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <Detail label="Prix de Base" icon={DollarSign}>{data.base_price ? `${data.base_price} DA` : 'Non défini'}</Detail>
+                    <Detail label="Wilaya de Service" icon={MapPin}>{getWilayaName(data.wilaya_id)}</Detail>
+                    <Detail label="Téléphone" icon={Phone}>{data.phone_number}</Detail>
+                </div>
 
-        return (
-            <div className="space-y-12 animate-in fade-in duration-500 pb-32">
-                {/* 1. Header & Identity */}
-                <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-8">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="p-4 bg-orange-50 rounded-2xl text-orange-600"><Store className="w-6 h-6" /></div>
-                            <div>
-                                <h2 className="text-3xl font-serif font-bold text-[#1E1E1E]">{item.commercial_name}</h2>
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">{item.category_slug?.replace(/_/g, ' ')}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <DetailItem icon={MapPin} label="Adresse" value={item.address} />
-                        <DetailItem icon={Tag} label="Prix de Base" value={item.base_price ? `${item.base_price} DA` : 'Non défini'} />
-                        <DetailItem icon={Smartphone} label="Téléphone" value={item.phone_number} />
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <BadgeInfo className="w-4 h-4" /> Description du Service
-                        </label>
-                        <div className="bg-slate-50 p-6 rounded-2xl text-slate-600 leading-relaxed text-sm">
-                            {item.bio || "Aucune description fournie."}
-                        </div>
-                    </div>
-                </section>
-
-                {/* 2. Specifics (Junction Data) */}
-                <section className="space-y-6">
-                    <div className="flex items-center gap-3 px-2">
-                        <div className="p-2 bg-[#B79A63]/10 rounded-xl text-[#B79A63]"><ListChecks className="w-5 h-5" /></div>
-                        <h3 className="text-xl font-bold font-serif text-slate-800">Détails Techniques & Capacités</h3>
-                    </div>
-
-                    <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
-                            {Object.entries(specifics).map(([key, val]) => {
-                                if (['provider_id', 'created_at', 'updated_at', 'id'].includes(key)) return null;
-                                return (
-                                    <div key={key} className="space-y-1">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase truncate" title={key}>{key.replace(/_/g, ' ')}</p>
-                                        <p className="text-sm font-bold text-slate-700">
-                                            {typeof val === 'boolean' ? (val ? 'Oui' : 'Non') : (Array.isArray(val) ? val.length + ' options' : String(val ?? '—'))}
-                                        </p>
-                                    </div>
-                                );
-                            })}
-                            {Object.keys(specifics).length === 0 && <p className="col-span-full text-slate-400 italic">Aucune donnée spécifique trouvée.</p>}
-                        </div>
-                    </div>
-                </section>
-
-                {/* 3. Media Gallery */}
-                <section className="space-y-6">
-                   <div className="flex items-center gap-3 px-2">
-                        <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600"><ImageIcon className="w-5 h-5" /></div>
-                        <h3 className="text-xl font-bold font-serif text-slate-800">Galerie & Vitrine</h3>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                        {gallery.map((m: any, i: number) => (
-                            <div key={i} className="aspect-square rounded-3xl overflow-hidden border-2 border-white shadow-lg relative group">
-                                <img src={m.media_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
-                                {m.is_main && (
-                                    <div className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-xl ring-2 ring-white">IMAGE PRINCIPALE</div>
-                                )}
+                <div className="space-y-4">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">Galerie Photos</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {(data.gallery || []).map((m: any, i: number) => (
+                            <div key={i} className="aspect-square rounded-2xl overflow-hidden shadow-sm relative border-2 border-white">
+                                <img src={m.media_url} className="w-full h-full object-cover" />
+                                {m.is_main && <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">PRINCIPALE</div>}
                             </div>
                         ))}
                     </div>
-                </section>
+                </div>
+
+                <div className="space-y-4">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">Description</p>
+                    <div className="p-6 rounded-2xl bg-slate-50 text-sm font-medium leading-relaxed text-slate-600">
+                        {data.bio || "Aucune description."}
+                    </div>
+                </div>
+             </div>
+        </div>
+    );
+
+    const Detail = ({ label, icon: Icon, children, modified }: any) => (
+        <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <Icon className="w-3 h-3" /> {label}
+                {modified && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+            </p>
+            <div className={cn("text-sm font-black text-[#1E1E1E]", modified && "text-blue-600")}>
+                {children || "—"}
             </div>
-        );
-    };
+        </div>
+    );
+
+    const Channel = ({ active, children }: any) => (
+        <div className={cn(
+            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border",
+            active ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-300 border-slate-100"
+        )}>
+            {active ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+            {children}
+        </div>
+    );
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="right" className="w-full p-0 bg-[#F8F5F0] border-l-0 overflow-hidden shadow-none sm:max-w-none">
-                <div className="flex flex-col h-full relative font-lato">
-                    {/* Header */}
-                    <div className="sticky top-0 z-50 bg-[#1E1E1E] text-white p-8 shadow-2xl flex items-center justify-between">
+            <SheetContent side="right" className="w-[85vw] max-w-[1200px] p-0 bg-[#F8F5F0] border-l-0 overflow-hidden shadow-none font-lato">
+                <div className="flex flex-col h-full">
+                    {/* Header bar */}
+                    <div className="bg-[#1E1E1E] p-8 md:p-10 flex items-center justify-between shadow-2xl relative z-20">
                         <div className="flex items-center gap-6">
-                            <div className="p-4 bg-[#B79A63]/25 rounded-2xl flex items-center justify-center ring-2 ring-[#B79A63]/10">
-                                {type === 'profile' ? <User className="w-8 h-8 text-[#B79A63]" /> : <Briefcase className="w-8 h-8 text-[#B79A63]" />}
+                            <div className="w-14 h-14 bg-[#B79A63] rounded-2xl flex items-center justify-center shadow-lg shadow-[#B79A63]/20">
+                                {itemType === 'profile' ? <User className="w-7 h-7 text-white" /> : <Briefcase className="w-7 h-7 text-white" />}
                             </div>
                             <div className="space-y-1">
-                                <h1 className="text-white font-serif text-3xl font-bold tracking-tight">
-                                    Modération : <span className="text-[#B79A63]">{item?.commercial_name || item?.display_name || 'Chargement...'}</span>
+                                <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                                    Modération {itemType === 'profile' ? 'Profil' : 'Prestation'}
                                 </h1>
-                                <div className="flex items-center gap-3">
-                                    <UnifiedBadge status="pending" size="sm" className="bg-[#B79A63]/20 text-[#B79A63] border-[#B79A63]/30">
-                                        En attente de validation
-                                    </UnifiedBadge>
-                                    <span className="text-slate-400 text-sm italic opacity-80">Soumis le {item?.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}</span>
-                                </div>
+                                <p className="text-[#B79A63]/70 text-xs font-bold uppercase tracking-widest">{data?.commercial_name || data?.display_name}</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-all hover:scale-110 active:scale-90">
-                            <X className="w-8 h-8" />
+                        <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all">
+                            <X className="w-6 h-6" />
                         </button>
                     </div>
 
-                    {/* Content Scroll Area */}
-                    <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-                        <div className="max-w-5xl mx-auto">
-                            {!item ? (
-                                <div className="py-20 text-center space-y-4">
-                                    <Loader2 className="w-12 h-12 animate-spin text-[#B79A63] mx-auto" />
-                                    <p className="text-slate-500 font-serif italic text-lg">Préparation de la vue de modération...</p>
-                                </div>
-                            ) : type === 'profile' ? (
-                                <ProfileModerationView />
-                            ) : (
-                                <ServiceModerationView />
-                            )}
+                    {/* Scrollable contents */}
+                    <div className="flex-1 overflow-y-auto p-12 custom-scrollbar relative z-10">
+                        <div className="max-w-4xl mx-auto">
+                            {itemType === 'profile' ? <ProfileView /> : <PrestationView />}
                         </div>
                     </div>
 
-                    {/* Action Bar */}
-                    <div className="p-8 bg-white/90 backdrop-blur-2xl border-t border-[#D4D2CF]/40 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_-20px_60px_rgba(0,0,0,0.05)]">
-                        <div className="flex items-center gap-6">
-                            <UnifiedButton
-                                variant="ghost"
-                                className="text-red-500 hover:bg-red-50 px-6 h-14 rounded-2xl font-bold"
-                                onClick={() => {/* handle delete */ }}
-                            >
-                                <Trash2 className="w-5 h-5 mr-3" /> Supprimer
-                            </UnifiedButton>
-
-                            {showRejectionInput && (
-                                <div className="animate-in slide-in-from-left-6 flex items-center gap-3 bg-orange-50/50 p-2 rounded-2xl border border-orange-100 shadow-inner">
-                                    <input
-                                        type="text"
-                                        placeholder="Motif du refus (ex: Photo de mauvaise qualité)"
-                                        className="w-96 h-12 rounded-xl border-none bg-transparent px-4 text-sm font-bold placeholder:text-orange-300 focus:outline-none"
-                                        value={rejectionReason}
-                                        onChange={(e) => setRejectionReason(e.target.value)}
-                                        autoFocus
-                                    />
-                                    <UnifiedButton
-                                        variant="secondary"
-                                        className="bg-orange-600 text-white hover:bg-orange-700 h-12 px-6 rounded-xl shadow-lg shadow-orange-200"
-                                        onClick={handleReject}
+                    {/* Footer Actions */}
+                    <div className="bg-white/80 backdrop-blur-3xl border-t border-slate-100 p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.05)] relative z-20">
+                        <div className="max-w-4xl mx-auto">
+                            {showRejectionInput ? (
+                                <div className="animate-in slide-in-from-bottom-8 duration-500 space-y-6">
+                                    <div className="space-y-4">
+                                        <label className="text-xs font-black uppercase tracking-widest text-[#B79A63] flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4" /> Motif du Rejet (Sera visible par le prestataire)
+                                        </label>
+                                        <textarea 
+                                            className="w-full h-32 bg-slate-50 border border-slate-100 rounded-2xl p-6 text-sm font-medium focus:ring-2 focus:ring-red-500/20 outline-none resize-none transition-all placeholder:italic"
+                                            placeholder="Ex: Les photos sont de mauvaise qualité, veuillez les remplacer..."
+                                            value={rejectionReason}
+                                            onChange={(e) => setRejectionReason(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-end gap-4">
+                                        <UnifiedButton variant="ghost" onClick={() => setShowRejectionInput(false)} className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest">
+                                            Annuler
+                                        </UnifiedButton>
+                                        <UnifiedButton 
+                                            variant="secondary" 
+                                            className="bg-red-500 text-white hover:bg-red-600 h-14 px-10 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-red-200"
+                                            onClick={() => handleAction('reject')}
+                                            loading={isSubmitting}
+                                        >
+                                            Confirmer le Rejet
+                                        </UnifiedButton>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row items-center justify-end gap-6">
+                                    <UnifiedButton 
+                                        variant="secondary" 
+                                        className="h-16 px-10 border-slate-100 rounded-3xl font-black uppercase text-[11px] tracking-widest text-slate-400 hover:text-red-500 hover:border-red-100 transition-all hover:bg-red-50 w-full sm:w-auto"
+                                        onClick={() => setShowRejectionInput(true)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Marquer comme Non Conforme
+                                    </UnifiedButton>
+                                    <UnifiedButton 
+                                        variant="secondary" 
+                                        className="h-16 px-14 bg-[#1E1E1E] text-white hover:bg-[#B79A63] rounded-3xl font-black uppercase text-[12px] tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95 w-full sm:w-auto"
+                                        onClick={() => handleAction('approve')}
                                         loading={isSubmitting}
                                     >
-                                        Confirmer le refus
+                                        <CheckCircle2 className="w-5 h-5 mr-3" /> Approuver la Publication
                                     </UnifiedButton>
-                                    <button onClick={() => setShowRejectionInput(false)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                                        <X className="w-6 h-6" />
-                                    </button>
                                 </div>
                             )}
                         </div>
-
-                        {!showRejectionInput && (
-                            <div className="flex items-center gap-5 w-full md:w-auto">
-                                <UnifiedButton
-                                    variant="secondary"
-                                    className="bg-orange-500/15 text-orange-600 hover:bg-orange-500 hover:text-white border-none min-w-[160px] h-14 rounded-2xl font-bold transition-all shadow-sm"
-                                    onClick={() => setShowRejectionInput(true)}
-                                    disabled={isSubmitting}
-                                >
-                                    <AlertCircle className="w-5 h-5 mr-3" /> Refuser
-                                </UnifiedButton>
-                                <UnifiedButton
-                                    variant="success"
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xl shadow-emerald-200/50 min-w-[240px] h-16 text-lg font-bold rounded-2xl active:scale-95 transition-transform"
-                                    onClick={handleApprove}
-                                    loading={isSubmitting}
-                                    disabled={isSubmitting}
-                                >
-                                    <Check className="w-6 h-6 mr-3 stroke-[3]" /> Approuver & Publier
-                                </UnifiedButton>
-                            </div>
-                        )}
                     </div>
                 </div>
             </SheetContent>
         </Sheet>
     );
 }
-
-// Helper Components
-const InfoCard = ({ icon: Icon, label, value, modified }: any) => (
-    <div className={cn(
-        "p-5 rounded-2xl border transition-all",
-        modified ? "bg-blue-50/50 border-blue-200 shadow-sm" : "bg-slate-50 border-slate-100"
-    )}>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-            <Icon className="w-3.5 h-3.5" /> {label}
-            {modified && <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />}
-        </p>
-        <p className={cn("text-lg font-bold", modified ? "text-blue-700" : "text-slate-800")}>
-            {value || "—"}
-        </p>
-    </div>
-);
-
-const DetailItem = ({ icon: Icon, label, value }: any) => (
-    <div className="space-y-2">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Icon className="w-3.5 h-3.5" /> {label}
-        </p>
-        <p className="text-slate-700 font-bold">{value || "—"}</p>
-    </div>
-);
-
-const StatusCard = ({ icon: Icon, label, value, isActive }: any) => (
-    <div className={cn(
-        "p-5 rounded-2xl border flex items-center gap-4 transition-all shadow-sm",
-        isActive ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-100 opacity-60"
-    )}>
-        <div className={cn("p-2 rounded-xl", isActive ? "bg-white text-emerald-600" : "bg-slate-200 text-slate-400")}>
-            <Icon className="w-5 h-5" />
-        </div>
-        <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-            <p className={cn("font-bold", isActive ? "text-emerald-700" : "text-slate-500")}>{value}</p>
-        </div>
-    </div>
-);

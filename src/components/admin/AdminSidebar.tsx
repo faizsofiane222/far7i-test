@@ -1,4 +1,8 @@
-import { LayoutDashboard, Users, ShieldAlert, LogOut, ChevronLeft, ChevronRight, FileText, MessageSquare, Bell } from "lucide-react";
+import { 
+    LayoutDashboard, Users, ShieldAlert, LogOut, 
+    ChevronLeft, ChevronRight, FileText, MessageSquare, 
+    Settings, Bell, Search, Info
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,10 +18,10 @@ import {
 } from "@/components/ui/tooltip";
 
 const navigation = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Gestion Partenaires", href: "/admin/partners", icon: Users },
-    { name: "Blog", href: "/admin/blog", icon: FileText },
-    { name: "Messagerie & Newsletter", href: "/admin/messaging", icon: MessageSquare },
+    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, description: "Vue d'ensemble et KPIs" },
+    { name: "Partenaires", href: "/admin/partners", icon: Users, description: "Gestion et Modération" },
+    { name: "Contenu Blog", href: "/admin/blog", icon: FileText, description: "Articles et Actualités" },
+    { name: "Messagerie", href: "/admin/messaging", icon: MessageSquare, description: "Support et Newsletter" },
 ];
 
 interface AdminSidebarProps {
@@ -42,76 +46,92 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
 
     return (
         <TooltipProvider delayDuration={0}>
-            <div className={cn(
-                "flex h-full flex-col bg-[#1E1E1E] transition-all duration-300 relative border-r border-[#B79A63]/20",
-                isCollapsed ? "w-20" : "w-64"
+            <aside className={cn(
+                "flex h-full flex-col bg-[#1A1A1A] transition-all duration-500 ease-in-out relative border-r border-white/5 shadow-2xl",
+                isCollapsed ? "w-24" : "w-72"
             )}>
-                {/* Toggle Button */}
-                <button
-                    onClick={onToggle}
-                    className="absolute -right-3 top-20 bg-[#B79A63] text-white p-1 rounded-full shadow-lg border-2 border-[#1E1E1E] hover:bg-[#A68952] transition-colors z-50"
-                >
-                    {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-                </button>
+                {/* Background Glow */}
+                <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-[#B79A63]/5 to-transparent pointer-events-none" />
 
+                {/* Logo Section */}
                 <div className={cn(
-                    "flex h-16 shrink-0 items-center transition-all duration-300 gap-2",
-                    isCollapsed ? "justify-center px-0 flex-col" : "px-6"
+                    "flex h-24 shrink-0 items-center justify-between transition-all duration-300",
+                    isCollapsed ? "px-6" : "px-8"
                 )}>
-                    {isCollapsed ? (
-                        <>
-                            <span className="font-serif text-xl font-bold text-[#D4D2CF]">F.</span>
-                            <span className="text-[9px] bg-[#B79A63] text-[#1E1E1E] px-1 rounded font-bold">ADM</span>
-                        </>
+                    {!isCollapsed ? (
+                        <div className="flex flex-col">
+                            <span className="font-serif text-2xl font-black text-white tracking-tight">
+                                Far<span className="text-[#B79A63]">7</span>i
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#B79A63] opacity-80">
+                                Administration
+                            </span>
+                        </div>
                     ) : (
-                        <>
-                            <span className="font-serif text-2xl font-bold text-[#D4D2CF]">Far7i</span>
-                            <span className="text-[10px] bg-[#B79A63] text-[#1E1E1E] px-2 py-0.5 rounded-full font-bold tracking-wider">ADMIN</span>
-                        </>
+                        <span className="font-serif text-3xl font-black text-[#B79A63] mx-auto">7</span>
                     )}
                 </div>
 
-                <nav className="flex flex-1 flex-col px-3 py-4 space-y-2">
+                {/* Main Navigation */}
+                <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto custom-scrollbar">
+                    {!isCollapsed && (
+                        <p className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-6">
+                            Menu Principal
+                        </p>
+                    )}
+                    
                     {navigation.map((item) => {
                         const isActive = location.pathname === item.href;
+                        const Icon = item.icon;
+                        
                         const content = (
                             <Link
                                 key={item.name}
                                 to={item.href}
                                 className={cn(
-                                    "group flex items-center py-2 text-sm font-medium rounded-xl transition-all duration-200",
-                                    isCollapsed ? "justify-center px-0 w-12 h-12 mx-auto" : "px-3",
+                                    "group relative flex items-center gap-4 py-4 px-4 rounded-2xl transition-all duration-300 transform active:scale-95",
                                     isActive
-                                        ? "bg-[#B79A63]/20 text-[#B79A63]"
-                                        : "text-[#D4D2CF] hover:text-[#B79A63] hover:bg-white/5"
+                                        ? "bg-gradient-to-r from-[#B79A63] to-[#A68952] text-white shadow-lg shadow-[#B79A63]/20"
+                                        : "text-white/60 hover:text-white hover:bg-white/5"
                                 )}
                             >
-                                <item.icon
-                                    className={cn(
-                                        "h-5 w-5 shrink-0 transition-colors duration-200",
-                                        isCollapsed ? "" : "mr-3",
-                                        isActive ? "text-[#B79A63]" : "text-[#D4D2CF] group-hover:text-[#B79A63]"
-                                    )}
-                                    aria-hidden="true"
-                                />
-                                {!isCollapsed && <span className="font-lato flex-1">{item.name}</span>}
-
-                                {item.name === "Gestion Partenaires" && pendingModeration > 0 && (
-                                    <Badge className={cn(
-                                        "ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center font-bold text-[10px] rounded-full animate-pulse bg-orange-500 hover:bg-orange-600",
-                                        isCollapsed ? "absolute top-0 right-0 scale-75" : ""
-                                    )}>
-                                        {pendingModeration}
-                                    </Badge>
+                                <Icon className={cn(
+                                    "h-6 w-6 shrink-0 transition-all duration-300",
+                                    isActive ? "scale-110" : "group-hover:scale-110"
+                                )} />
+                                
+                                {!isCollapsed && (
+                                    <div className="flex flex-col flex-1 overflow-hidden">
+                                        <span className="font-bold text-sm tracking-tight">{item.name}</span>
+                                        <span className={cn(
+                                            "text-[10px] font-medium truncate opacity-60",
+                                            isActive ? "text-white" : "group-hover:text-white/80"
+                                        )}>
+                                            {item.description}
+                                        </span>
+                                    </div>
                                 )}
 
-                                {item.name === "Messagerie & Newsletter" && unreadMessages > 0 && (
-                                    <Badge variant="secondary" className={cn(
-                                        "ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center font-bold text-[10px] rounded-full bg-[#B79A63] text-black",
-                                        isCollapsed ? "absolute top-0 right-0 scale-75" : ""
+                                {item.name === "Partenaires" && pendingModeration > 0 && (
+                                    <div className={cn(
+                                        "h-6 min-w-[24px] px-1.5 flex items-center justify-center font-black text-[10px] rounded-full shadow-lg ring-2 ring-[#1A1A1A]",
+                                        isActive ? "bg-white text-[#B79A63]" : "bg-orange-500 text-white animate-pulse"
+                                    )}>
+                                        {pendingModeration}
+                                    </div>
+                                )}
+
+                                {item.name === "Messagerie" && unreadMessages > 0 && (
+                                    <div className={cn(
+                                        "h-6 min-w-[24px] px-1.5 flex items-center justify-center font-black text-[10px] rounded-full shadow-lg ring-2 ring-[#1A1A1A]",
+                                        isActive ? "bg-white text-[#B79A63]" : "bg-[#B79A63] text-white"
                                     )}>
                                         {unreadMessages}
-                                    </Badge>
+                                    </div>
+                                )}
+                                
+                                {isActive && (
+                                    <div className="absolute -left-4 w-1.5 h-8 bg-white rounded-full" />
                                 )}
                             </Link>
                         );
@@ -122,7 +142,7 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
                                     <TooltipTrigger asChild>
                                         {content}
                                     </TooltipTrigger>
-                                    <TooltipContent side="right" className="bg-[#1E1E1E] border-[#B79A63]/20 text-[#D4D2CF] font-lato">
+                                    <TooltipContent side="right" className="bg-[#1A1A1A] border-white/10 text-white px-4 py-2 font-bold shadow-2xl">
                                         {item.name}
                                     </TooltipContent>
                                 </Tooltip>
@@ -133,33 +153,32 @@ export function AdminSidebar({ isCollapsed, onToggle }: AdminSidebarProps) {
                     })}
                 </nav>
 
-                {/* Bottom Actions */}
-                <div className="p-3 border-t border-[#B79A63]/20">
-                    {isCollapsed ? (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <button
-                                    onClick={handleSignOut}
-                                    className="w-12 h-12 mx-auto flex items-center justify-center rounded-xl text-[#D4D2CF] hover:text-red-400 hover:bg-red-400/10 transition-all duration-200"
-                                >
-                                    <LogOut className="w-5 h-5" />
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="bg-[#1E1E1E] border-[#B79A63]/20 text-[#D4D2CF] font-lato">
-                                Déconnexion
-                            </TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        <button
-                            onClick={handleSignOut}
-                            className="w-full flex items-center px-3 py-2 text-sm font-medium text-[#D4D2CF] rounded-xl hover:text-red-400 hover:bg-red-400/10 transition-all duration-200"
-                        >
-                            <LogOut className="mr-3 h-5 w-5" />
-                            <span className="font-lato">Déconnexion</span>
-                        </button>
-                    )}
+                {/* Bottom Section */}
+                <div className="p-4 border-t border-white/5 bg-black/20">
+                    <button
+                        onClick={onToggle}
+                        className="w-full h-12 flex items-center justify-center gap-3 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all active:scale-95 group mb-2"
+                    >
+                        {isCollapsed ? <ChevronRight className="w-5 h-5" /> : (
+                            <>
+                                <ChevronLeft className="w-5 h-5" />
+                                <span className="text-xs font-bold uppercase tracking-widest">Réduire</span>
+                            </>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={handleSignOut}
+                        className={cn(
+                            "group flex items-center gap-4 w-full py-4 px-4 rounded-2xl text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-all active:scale-95",
+                            isCollapsed && "justify-center"
+                        )}
+                    >
+                        <LogOut className="h-6 w-6 shrink-0 transition-transform group-hover:-translate-x-1" />
+                        {!isCollapsed && <span className="font-bold text-sm">Déconnexion</span>}
+                    </button>
                 </div>
-            </div>
+            </aside>
         </TooltipProvider>
     );
 }
