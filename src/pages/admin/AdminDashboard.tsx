@@ -328,18 +328,18 @@ export default function AdminDashboard() {
                             </h3>
                             <div className="space-y-4">
                                 {recentActivity.map((act, i) => (
-                                    <div key={act.id} className="group p-5 bg-white rounded-3xl border border-slate-50 transition-all hover:border-[#B79A63]/20 hover:shadow-lg">
+                                    <div key={act?.id} className="group p-5 bg-white rounded-3xl border border-slate-50 transition-all hover:border-[#B79A63]/20 hover:shadow-lg">
                                         <div className="flex gap-4">
                                             <div className={cn(
                                                 "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                                                act.moderation_status === 'approved' ? "bg-emerald-50 text-emerald-500" : "bg-orange-50 text-orange-500"
+                                                act?.moderation_status === 'approved' ? "bg-emerald-50 text-emerald-500" : "bg-orange-50 text-orange-500"
                                             )}>
-                                                {act.moderation_status === 'approved' ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                                                {act?.moderation_status === 'approved' ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                                             </div>
                                             <div className="flex-1 space-y-1">
-                                                <p className="text-[13px] font-black text-[#1E1E1E] leading-tight">{act.commercial_name}</p>
+                                                <p className="text-[13px] font-black text-[#1E1E1E] leading-tight">{act?.commercial_name}</p>
                                                 <p className="text-[10px] font-medium text-[#1E1E1E]/40 italic">
-                                                    {new Date(act.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                    {act?.updated_at ? new Date(act.updated_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                                 </p>
                                             </div>
                                         </div>

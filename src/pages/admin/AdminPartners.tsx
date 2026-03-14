@@ -72,7 +72,8 @@ export default function AdminPartners() {
             setLoading(true);
             const { data, error } = await (supabase as any).rpc('get_admin_moderation_list');
             if (error) throw error;
-            setPartners(data || []);
+            // Defensive filter against null entries
+            setPartners((data || []).filter((p: any) => p && p.profile));
         } catch (error: any) {
             console.error("Error fetching moderation list:", error);
             toast.error("Échec du chargement de la liste");
@@ -106,10 +107,13 @@ export default function AdminPartners() {
             const matchesSearch = 
                 p.display_name?.toLowerCase().includes(search.toLowerCase()) ||
                 p.email?.toLowerCase().includes(search.toLowerCase()) ||
-                p.prestations?.some(pr => pr.commercial_name?.toLowerCase().includes(search.toLowerCase()));
+                p.prestations?.some(pr => pr?.commercial_name?.toLowerCase().includes(search.toLowerCase()));
             
-            const matchesStatus = statusFilter === "all" || p.profile.status === statusFilter || p.prestations.some(pr => pr.status === statusFilter);
-            const matchesType = typeFilter === "all" || p.profile.provider_type === typeFilter;
+            const matchesStatus = statusFilter === "all" || 
+                p?.profile?.status === statusFilter || 
+                p?.prestations?.some(pr => pr?.status === statusFilter);
+            
+            const matchesType = typeFilter === "all" || p?.profile?.provider_type === typeFilter;
 
             return matchesSearch && matchesStatus && matchesType;
         });
@@ -134,7 +138,7 @@ export default function AdminPartners() {
                         <h1 className="text-4xl font-black text-[#1E1E1E] tracking-tight">Gestion des Partenaires</h1>
                         <p className="text-sm text-[#1E1E1E]/40 font-medium italic">Gérez vos prestataires et validez leurs prestations en toute simplicité.</p>
                     </div>
-                    {partners.some(p => p.profile.status === 'pending' || p.prestations.some(pr => pr.status === 'pending')) && (
+                    {partners?.some(p => p.profile?.status === 'pending' || p.prestations?.some(pr => pr?.status === 'pending')) && (
                         <div className="flex items-center gap-3 bg-orange-50 border border-orange-100 px-4 py-2 rounded-2xl">
                              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                              <span className="text-sm font-black text-orange-700 uppercase tracking-widest">Action Requise</span>
@@ -195,7 +199,7 @@ export default function AdminPartners() {
                 <div className="space-y-6">
                     {filteredPartners.map((partner) => {
                         const isExpanded = expandedPartners[partner.user_id];
-                        const profStatus = getStatusConfig(partner.profile.status);
+                        const profStatus = getStatusConfig(partner.profile?.status || 'pending');
                         
                         return (
                             <div key={partner.user_id} className="group bg-white rounded-[32px] border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:shadow-black/5 overflow-hidden">
@@ -203,7 +207,7 @@ export default function AdminPartners() {
                                 <div className="p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
                                     <div className="flex flex-1 gap-6 items-center min-w-0">
                                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#B79A63] to-[#A68952] flex items-center justify-center text-white shrink-0 shadow-lg shadow-[#B79A63]/20">
-                                            {partner.profile.provider_type === 'agency' ? <Building2 className="w-8 h-8" /> : <User className="w-8 h-8" />}
+                                            {partner.profile?.provider_type === 'agency' ? <Building2 className="w-8 h-8" /> : <User className="w-8 h-8" />}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-3 mb-1">
@@ -214,8 +218,8 @@ export default function AdminPartners() {
                                             </div>
                                             <div className="flex flex-wrap gap-4 text-xs font-bold text-[#1E1E1E]/40">
                                                 <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {partner.email}</span>
-                                                <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Inscription: {new Date(partner.profile.created_at).toLocaleDateString()}</span>
-                                                {partner.prestations.length > 0 && (
+                                                <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Inscription: {partner.profile?.created_at ? new Date(partner.profile.created_at).toLocaleDateString() : 'N/A'}</span>
+                                                {partner.prestations?.length > 0 && (
                                                     <span className="flex items-center gap-1.5 text-[#B79A63] bg-[#B79A63]/5 px-2 py-0.5 rounded-lg border border-[#B79A63]/10">
                                                         <LayoutGrid className="w-3.5 h-3.5" /> {partner.prestations.length} services
                                                     </span>
@@ -251,7 +255,8 @@ export default function AdminPartners() {
                                     <div className="px-8 pb-8 animate-in slide-in-from-top-4 duration-500">
                                         <div className="h-px w-full bg-slate-100 mb-8" />
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {partner.prestations.map((prestation) => {
+                                            {partner.prestations?.map((prestation) => {
+                                                if (!prestation) return null;
                                                 const preStatus = getStatusConfig(prestation.status);
                                                 return (
                                                     <div 

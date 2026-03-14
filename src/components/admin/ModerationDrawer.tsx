@@ -125,7 +125,7 @@ export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, on
                     <div className="p-8 bg-white border border-slate-100 rounded-[32px] shadow-sm flex flex-col items-center gap-6">
                          <div className="w-40 h-40 rounded-[40px] overflow-hidden border-4 border-white shadow-2xl relative">
                             <img 
-                                src={pendingUpdates?.profile_picture_url || data.profile_picture_url || "/placeholder.svg"} 
+                                src={pendingUpdates?.profile_picture_url || data?.profile_picture_url || "/placeholder.svg"} 
                                 className="w-full h-full object-cover" 
                                 alt="Avatar" 
                             />
@@ -137,24 +137,24 @@ export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, on
                          </div>
                          <div className="text-center space-y-1">
                             <h4 className="text-lg font-black text-[#1E1E1E] leading-tight">
-                                {pendingUpdates?.commercial_name || data.commercial_name || data.display_name}
+                                {pendingUpdates?.commercial_name || data?.commercial_name || data?.display_name}
                             </h4>
-                            <p className="text-xs font-bold text-slate-400">{data.email}</p>
+                            <p className="text-xs font-bold text-slate-400">{data?.email}</p>
                          </div>
                          <div className="w-full h-px bg-slate-50" />
                          <div className="w-full grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <p className="text-[8px] font-black uppercase text-slate-400">Statut Actuel</p>
-                                <UnifiedBadge status={data.status || 'pending'} size="sm" className="w-full justify-center" />
+                                <UnifiedBadge status={data?.status || 'pending'} size="sm" className="w-full justify-center" />
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[8px] font-black uppercase text-slate-400">Services</p>
-                                <p className="text-sm font-black text-[#1E1E1E] px-3">{(data as any).prestations_count || 0}</p>
+                                <p className="text-sm font-black text-[#1E1E1E] px-3">{data?.prestations_count || 0}</p>
                             </div>
                          </div>
                     </div>
 
-                    {data.rejection_reason && (
+                    {data?.rejection_reason && (
                         <div className="p-6 bg-red-50 border border-red-100 rounded-[24px] space-y-2">
                             <p className="text-[8px] font-black uppercase text-red-500 tracking-widest flex items-center gap-2">
                                 <AlertCircle className="w-3 h-3" /> Motif du Rejet Précédent
@@ -169,16 +169,16 @@ export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, on
                     <div className="bg-white border border-slate-100 rounded-[32px] p-8 md:p-10 shadow-sm space-y-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                             <Detail label="Type de Prestataire" icon={Building2} modified={isFieldModified('provider_type')}>
-                                {(pendingUpdates?.provider_type || data.provider_type) === 'agency' ? 'Agence' : 'Individuel'}
+                                {(pendingUpdates?.provider_type || data?.provider_type) === 'agency' ? 'Agence' : 'Individuel'}
                             </Detail>
                             <Detail label="Wilaya" icon={MapPin} modified={isFieldModified('wilaya_id')}>
-                                {getWilayaName(pendingUpdates?.wilaya_id || data.wilaya_id)}
+                                {getWilayaName(pendingUpdates?.wilaya_id || data?.wilaya_id)}
                             </Detail>
                             <Detail label="Téléphone" icon={Phone} modified={isFieldModified('phone_number')}>
-                                {pendingUpdates?.phone_number || data.phone_number}
+                                {pendingUpdates?.phone_number || data?.phone_number}
                             </Detail>
                             <Detail label="Réseau Social" icon={Instagram} modified={isFieldModified('social_link')}>
-                                <a href={pendingUpdates?.social_link || data.social_link} target="_blank" className="text-blue-500 hover:underline flex items-center gap-1">
+                                <a href={pendingUpdates?.social_link || data?.social_link} target="_blank" className="text-blue-500 hover:underline flex items-center gap-1">
                                     Lien externe <ExternalLink className="w-3 h-3" />
                                 </a>
                             </Detail>
@@ -187,8 +187,8 @@ export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, on
                         <div className="space-y-4">
                             <p className="text-xs font-black uppercase tracking-widest text-slate-400">Canaux de communication</p>
                             <div className="flex flex-wrap gap-4">
-                                <Channel active={pendingUpdates?.is_whatsapp_active ?? data.is_whatsapp_active}>WhatsApp</Channel>
-                                <Channel active={pendingUpdates?.is_viber_active ?? data.is_viber_active}>Viber</Channel>
+                                <Channel active={pendingUpdates?.is_whatsapp_active ?? data?.is_whatsapp_active}>WhatsApp</Channel>
+                                <Channel active={pendingUpdates?.is_viber_active ?? data?.is_viber_active}>Viber</Channel>
                             </div>
                         </div>
 
@@ -198,7 +198,7 @@ export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, on
                                 "p-6 rounded-2xl bg-slate-50 text-sm font-medium leading-relaxed text-slate-600",
                                 isFieldModified('bio') && "ring-2 ring-blue-500/20 bg-blue-50/20"
                             )}>
-                                {pendingUpdates?.bio || data.bio || "Aucune biographie fournie."}
+                                {pendingUpdates?.bio || data?.bio || "Aucune biographie fournie."}
                             </div>
                         </div>
                     </div>
@@ -210,18 +210,18 @@ export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, on
     const PrestationView = () => (
         <div className="space-y-12 pb-24 animate-in fade-in duration-700">
              <div className="bg-white border border-slate-100 rounded-[32px] p-8 md:p-10 shadow-sm space-y-10">
-                <SectionHeader icon={Briefcase} title={data.commercial_name} subtitle={data.category_slug?.replace(/_/g, ' ')} />
+                <SectionHeader icon={Briefcase} title={data?.commercial_name} subtitle={data?.category_slug?.replace(/_/g, ' ')} />
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Detail label="Prix de Base" icon={DollarSign}>{data.base_price ? `${data.base_price} DA` : 'Non défini'}</Detail>
-                    <Detail label="Wilaya de Service" icon={MapPin}>{getWilayaName(data.wilaya_id)}</Detail>
-                    <Detail label="Téléphone" icon={Phone}>{data.phone_number}</Detail>
+                    <Detail label="Prix de Base" icon={DollarSign}>{data?.base_price ? `${data.base_price} DA` : 'Non défini'}</Detail>
+                    <Detail label="Wilaya de Service" icon={MapPin}>{getWilayaName(data?.wilaya_id)}</Detail>
+                    <Detail label="Téléphone" icon={Phone}>{data?.phone_number}</Detail>
                 </div>
 
                 <div className="space-y-4">
                     <p className="text-xs font-black uppercase tracking-widest text-slate-400">Galerie Photos</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {(data.gallery || []).map((m: any, i: number) => (
+                        {(data?.gallery || []).map((m: any, i: number) => (
                             <div key={i} className="aspect-square rounded-2xl overflow-hidden shadow-sm relative border-2 border-white">
                                 <img src={m.media_url} className="w-full h-full object-cover" />
                                 {m.is_main && <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg">PRINCIPALE</div>}
@@ -233,7 +233,7 @@ export function ModerationDrawer({ isOpen, onClose, data, itemType, parentId, on
                 <div className="space-y-4">
                     <p className="text-xs font-black uppercase tracking-widest text-slate-400">Description</p>
                     <div className="p-6 rounded-2xl bg-slate-50 text-sm font-medium leading-relaxed text-slate-600">
-                        {data.bio || "Aucune description."}
+                        {data?.bio || "Aucune description."}
                     </div>
                 </div>
              </div>
