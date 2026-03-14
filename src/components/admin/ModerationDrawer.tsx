@@ -31,6 +31,21 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [rejectionReason, setRejectionReason] = React.useState("");
     const [showRejectionInput, setShowRejectionInput] = React.useState(false);
+    const [wilayas, setWilayas] = React.useState<any[]>([]);
+
+    React.useEffect(() => {
+        const fetchWilayas = async () => {
+            const { data } = await supabase.from('wilayas').select('*').order('code');
+            if (data) setWilayas(data);
+        };
+        fetchWilayas();
+    }, []);
+
+    const getWilayaName = (id: string) => {
+        if (!id) return "—";
+        const w = wilayas.find(x => x.id === id);
+        return w ? `${w.code} - ${w.name}` : id;
+    };
 
     const pendingUpdates = item?.pending_updates;
     const isNewCreation = !pendingUpdates && (item?.status === 'pending' || item?.status === 'incomplete');
@@ -43,9 +58,10 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
             
             const rpcName = type === 'profile' ? 'handle_profile_moderation' : 'handle_prestation_moderation';
             const idKey = type === 'profile' ? 'p_user_id' : 'p_provider_id';
+            const targetId = type === 'profile' ? item.user_id : item.id;
             
             const { error } = await (supabase as any).rpc(rpcName, {
-                [idKey]: item.id,
+                [idKey]: targetId,
                 p_action: 'approve'
             });
 
@@ -72,9 +88,10 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
             
             const rpcName = type === 'profile' ? 'handle_profile_moderation' : 'handle_prestation_moderation';
             const idKey = type === 'profile' ? 'p_user_id' : 'p_provider_id';
+            const targetId = type === 'profile' ? item.user_id : item.id;
 
             const { error } = await (supabase as any).rpc(rpcName, {
-                [idKey]: item.id,
+                [idKey]: targetId,
                 p_action: 'reject',
                 p_reason: rejectionReason
             });
@@ -135,44 +152,48 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InfoCard icon={Briefcase} label="Type" value={pendingUpdates?.provider_type || item.provider_type} modified={isFieldModified('provider_type')} />
+                        <InfoCard 
+                            icon={Briefcase} 
+                            label="Type de Prestataire" 
+                            value={
+                                (pendingUpdates?.provider_type || item.provider_type) === 'solo' 
+                                ? "Indépendant / Freelance" 
+                                : "Agence / Équipe"
+                            } 
+                            modified={isFieldModified('provider_type')} 
+                        />
                         <InfoCard icon={Phone} label="Téléphone" value={pendingUpdates?.phone_number || item.phone_number} modified={isFieldModified('phone_number')} />
-                        <InfoCard icon={MapPin} label="Localisation" value={pendingUpdates?.wilaya_id || item.wilaya_id} modified={isFieldModified('wilaya_id')} />
-                        <InfoCard icon={Globe} label="Lien Social" value={pendingUpdates?.social_link || item.social_link} modified={isFieldModified('social_link')} />
+                        <InfoCard icon={MapPin} label="Wilaya" value={getWilayaName(pendingUpdates?.wilaya_id || item.wilaya_id)} modified={isFieldModified('wilaya_id')} />
+                        <InfoCard icon={Globe} label="Lien Réseau Social" value={pendingUpdates?.social_link || item.social_link} modified={isFieldModified('social_link')} />
                     </div>
                 </div>
             </div>
 
-            {/* Bio Block */}
-            <div className={cn(
-                "p-8 rounded-3xl border bg-white shadow-sm",
-                isFieldModified('bio') ? "border-amber-200 bg-amber-50/30" : "border-slate-100"
-            )}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><Info className="w-5 h-5" /></div>
-                    <h3 className="text-xl font-bold text-slate-800">Biographie / Présentation</h3>
-                    {isFieldModified('bio') && <UnifiedBadge status="pending">Nouvelle Bio</UnifiedBadge>}
-                </div>
-                <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed">
-                    {pendingUpdates?.bio || item.bio || "Aucune description fournie."}
-                </div>
-            </div>
-
             {/* Contact Details Full */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatusCard icon={Mail} label="Email Contact" value={item.email} isActive={true} />
-                <StatusCard 
-                    icon={Smartphone} 
-                    label="WhatsApp" 
-                    value={pendingUpdates?.is_whatsapp_active ?? item.is_whatsapp_active ? 'Activé' : 'Désactivé'} 
-                    isActive={pendingUpdates?.is_whatsapp_active ?? item.is_whatsapp_active} 
-                />
-                <StatusCard 
-                    icon={Smartphone} 
-                    label="Viber" 
-                    value={pendingUpdates?.is_viber_active ?? item.is_viber_active ? 'Activé' : 'Désactivé'} 
-                    isActive={pendingUpdates?.is_viber_active ?? item.is_viber_active} 
-                />
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5" /> Email (Non modifiable)
+                    </p>
+                    <div className="w-full h-12 flex items-center rounded-2xl border border-[#D4D2CF] bg-[#F8F5F0]/50 px-4 py-2 text-sm text-[#1E1E1E]/50 font-medium">
+                        {item.email}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <StatusCard 
+                        icon={Smartphone} 
+                        label="WhatsApp" 
+                        value={pendingUpdates?.is_whatsapp_active ?? item.is_whatsapp_active ? 'Activé' : 'Désactivé'} 
+                        isActive={pendingUpdates?.is_whatsapp_active ?? item.is_whatsapp_active} 
+                    />
+                    <StatusCard 
+                        icon={Smartphone} 
+                        label="Viber" 
+                        value={pendingUpdates?.is_viber_active ?? item.is_viber_active ? 'Activé' : 'Désactivé'} 
+                        isActive={pendingUpdates?.is_viber_active ?? item.is_viber_active} 
+                    />
+                </div>
             </div>
         </div>
     );
