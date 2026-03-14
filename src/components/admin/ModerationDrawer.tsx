@@ -176,7 +176,7 @@ export function ModerationDrawer({ isOpen, onClose, item, type, onActionComplete
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                         <Mail className="w-3.5 h-3.5" /> Email (Non modifiable)
                     </p>
-                    <div className="w-full h-12 flex items-center rounded-2xl border border-[#D4D2CF] bg-[#F8F5F0]/50 px-4 py-2 text-sm text-[#1E1E1E]/50 font-medium">
+                    <div className="w-full h-12 flex items-center rounded-2xl border border-[#D4D2CF] bg-[#F8F5F0]/80 px-4 py-2 text-sm text-[#1E1E1E] font-semibold">
                         {item.email}
                     </div>
                 </div>
